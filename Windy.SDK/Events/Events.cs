@@ -13,7 +13,7 @@ namespace Windy.SDK.Events
 
     public sealed class MessageEventArgs : EventArgs
     {
-        public MessageEventArgs(Adaptor.Adaptor adaptor, MessageScene scene, string content, string messageId, string authorId, SendTarget replyTarget)
+        public MessageEventArgs(Adaptor.Adaptor adaptor, MessageScene scene, string content, string messageId, string authorId, SendTarget replyTarget, string authorName = "")
         {
             Adaptor = new AdaptorMessageApi(adaptor, this);
             RawAdaptor = adaptor;
@@ -21,6 +21,7 @@ namespace Windy.SDK.Events
             Content = content;
             MessageId = messageId;
             AuthorId = authorId;
+            AuthorName = authorName;
             ReplyTarget = replyTarget;
         }
 
@@ -37,6 +38,8 @@ namespace Windy.SDK.Events
         public string? EventId { get; set; }
 
         public string AuthorId { get; }
+
+        public string AuthorName { get; }
 
         public string? GroupId { get; set; }
 

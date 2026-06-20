@@ -387,6 +387,7 @@ namespace Windy.SDK.Adaptor.QQOfficial
         {
             string eventType = envelope.Value<string>("t") ?? "";
             JObject data = envelope["d"] as JObject ?? new JObject();
+            //Message.Blue($"QQ官方 API Event: {envelope.ToString()}");
             switch (eventType)
             {
                 case "READY":
@@ -426,7 +427,8 @@ namespace Windy.SDK.Adaptor.QQOfficial
         {
             string groupId = data.Value<string>("group_openid") ?? "";
             string author = data["author"]?.Value<string>("member_openid") ?? data.Value<string>("member_openid") ?? "";
-            MessageEventArgs args = new(this, scene, data.Value<string>("content") ?? "", data.Value<string>("id") ?? "", author, SendTarget.Group(groupId))
+            string authorName = data["author"]?.Value<string>("username") ?? "";
+            MessageEventArgs args = new(this, scene, CleanMessageContent(data), data.Value<string>("id") ?? "", author, SendTarget.Group(groupId), authorName)
             {
                 GroupId = groupId,
                 EventId = envelope.Value<string>("id"),
@@ -439,13 +441,46 @@ namespace Windy.SDK.Adaptor.QQOfficial
         private MessageEventArgs CreatePrivateMessage(JObject data, JObject envelope)
         {
             string author = data["author"]?.Value<string>("user_openid") ?? data.Value<string>("openid") ?? "";
-            MessageEventArgs args = new(this, MessageScene.Private, data.Value<string>("content") ?? "", data.Value<string>("id") ?? "", author, SendTarget.User(author))
+            string authorName = data["author"]?.Value<string>("username") ?? "";
+            MessageEventArgs args = new(this, MessageScene.Private, CleanMessageContent(data), data.Value<string>("id") ?? "", author, SendTarget.User(author), authorName)
             {
                 EventId = envelope.Value<string>("id"),
                 Raw = envelope,
             };
             AddAttachments(args, data);
             return args;
+        }
+
+        private static string CleanMessageContent(JObject data)
+        {
+            string content = data.Value<string>("content") ?? "";
+            if (data["mentions"] is not JArray mentions)
+            {
+                return content.TrimStart();
+            }
+
+            foreach (JObject mention in mentions.OfType<JObject>())
+            {
+                if (mention.Value<bool?>("is_you") != true)
+                {
+                    continue;
+                }
+
+                RemoveMention(ref content, mention.Value<string>("id"));
+                RemoveMention(ref content, mention.Value<string>("member_openid"));
+            }
+
+            return content.TrimStart();
+        }
+
+        private static void RemoveMention(ref string content, string? id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return;
+            }
+
+            content = content.Replace($"<@{id}>", "", StringComparison.Ordinal);
         }
 
         private static void AddAttachments(MessageEventArgs args, JObject data)

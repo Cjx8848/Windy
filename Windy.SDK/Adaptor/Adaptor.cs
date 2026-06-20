@@ -32,7 +32,7 @@
             return SendMessage(SendTarget.Group(id), content, null, cancellationToken);
         }
 
-        public virtual Task SendMessageAsync(string id, string text, CancellationToken cancellationToken = default)
+        public virtual Task SendMessage(string id, string text, CancellationToken cancellationToken = default)
         {
             return SendMessage(id, MessageContent.Text(text), cancellationToken);
         }

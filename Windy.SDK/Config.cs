@@ -3,7 +3,7 @@
     public sealed class WindyConfig
     {
         public string OwnerOpenID { get; set; } = "";
-
+        public bool Debug = false;
         public List<AdaptorConfig> Adaptors { get; set; } =
         [
             new AdaptorConfig
