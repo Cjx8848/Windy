@@ -218,6 +218,7 @@ namespace Windy.SDK.Adaptor.QQOfficial
             }
 
             //Message.Blue($"QQ官方 API 响应: {responseText}");
+            //返回主动消息失败的话应该是在这里,后续可以处理一下 TODO
             return string.IsNullOrWhiteSpace(responseText) ? new JObject() : JObject.Parse(responseText);
         }
 
@@ -387,7 +388,7 @@ namespace Windy.SDK.Adaptor.QQOfficial
         {
             string eventType = envelope.Value<string>("t") ?? "";
             JObject data = envelope["d"] as JObject ?? new JObject();
-            //Message.Blue($"QQ官方 API Event: {envelope.ToString()}");
+            Message.Blue($"QQ官方 API Event: {envelope.ToString()}");
             switch (eventType)
             {
                 case "READY":
@@ -428,14 +429,27 @@ namespace Windy.SDK.Adaptor.QQOfficial
             string groupId = data.Value<string>("group_openid") ?? "";
             string author = data["author"]?.Value<string>("member_openid") ?? data.Value<string>("member_openid") ?? "";
             string authorName = data["author"]?.Value<string>("username") ?? "";
+            string memberRole = data["author"]?.Value<string>("member_role") ?? "";
             MessageEventArgs args = new(this, scene, CleanMessageContent(data), data.Value<string>("id") ?? "", author, SendTarget.Group(groupId), authorName)
             {
                 GroupId = groupId,
                 EventId = envelope.Value<string>("id"),
                 Raw = envelope,
+                Role = ParseGroupMemberRole(memberRole),
             };
+            Message.Yellow($"[{args.GroupId}]{args.AuthorName}({args.Role}):{args.Content}");
             AddAttachments(args, data);
             return args;
+        }
+
+        private static GroupMemberRole ParseGroupMemberRole(string role)
+        {
+            return role.ToLowerInvariant() switch
+            {
+                "owner" => GroupMemberRole.Owner,
+                "admin" => GroupMemberRole.Admin,
+                _ => GroupMemberRole.Member,
+            };
         }
 
         private MessageEventArgs CreatePrivateMessage(JObject data, JObject envelope)
@@ -447,6 +461,7 @@ namespace Windy.SDK.Adaptor.QQOfficial
                 EventId = envelope.Value<string>("id"),
                 Raw = envelope,
             };
+            Message.Yellow($"[{args.AuthorId}]{args.AuthorName}:{args.Content}");
             AddAttachments(args, data);
             return args;
         }

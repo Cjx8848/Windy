@@ -50,8 +50,15 @@ namespace Windy.SDK.Events
         public JObject? Raw { get; set; }
 
         public bool Handled { get; set; }
-    }
 
+        public GroupMemberRole Role { get; set; } = GroupMemberRole.Member;
+    }
+    public enum GroupMemberRole
+    {
+        Member,
+        Admin,
+        Owner
+    }
     public sealed class MessageAttachment
     {
         public string ContentType { get; set; } = "";
