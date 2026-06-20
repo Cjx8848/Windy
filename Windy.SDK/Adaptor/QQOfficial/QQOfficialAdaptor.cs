@@ -388,7 +388,8 @@ namespace Windy.SDK.Adaptor.QQOfficial
         {
             string eventType = envelope.Value<string>("t") ?? "";
             JObject data = envelope["d"] as JObject ?? new JObject();
-            Message.Blue($"QQ官方 API Event: {envelope.ToString()}");
+            //Message.Blue($"QQ官方 API Event: {envelope.ToString()}");
+            //调试用,如果有需要可以删除注释
             switch (eventType)
             {
                 case "READY":
