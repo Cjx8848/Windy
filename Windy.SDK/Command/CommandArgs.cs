@@ -55,5 +55,7 @@ namespace Windy.SDK.Command
             value = 0;
             return Has(index) && int.TryParse(Parameters[index], out value);
         }
+
+        public ContextMessageContent CreateMessageContent() => new(Message);
     }
 }

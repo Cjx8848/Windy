@@ -345,6 +345,10 @@ namespace Windy.SDK.Adaptor.Milky
                 MarkdownSegment markdown => Segment("text", new JObject { ["text"] = markdown.Markdown }),
                 MarkdownTemplateSegment markdown => Segment("text", new JObject { ["text"] = $"Milky 不支持 Markdown 模板消息: {markdown.TemplateId}" }),
                 ButtonSegment => SkipUnsupported("Milky 不支持 QQ 官方按钮消息."),
+                FaceSegment face => Segment("face", new JObject { ["face_id"] = face.FaceId, ["is_large"] = face.IsLarge }),
+                ReplySegment reply => Segment("reply", new JObject { ["message_seq"] = ParseId(reply.MessageSeq, nameof(reply.MessageSeq)) }),
+                ForwardSegment forward => ConvertForwardSegment(forward),
+                LightAppSegment lightApp => Segment("light_app", new JObject { ["json_payload"] = lightApp.JsonPayload }),
                 _ => SkipUnsupported($"Milky 不支持消息段: {segment.GetType().Name}"),
             });
         }
@@ -388,6 +392,65 @@ namespace Windy.SDK.Adaptor.Milky
             }
         }
 
+        private static JObject? ConvertForwardSegment(ForwardSegment forward)
+        {
+            if (forward.Messages.Count == 0)
+            {
+                return null;
+            }
+
+            JArray messages = new(forward.Messages.Select(node =>
+            {
+                JArray segs = new();
+                foreach (MessageSegment seg in node.Message.Segments)
+                {
+                    JObject? converted = ConvertSegmentStatic(seg);
+                    if (converted != null)
+                    {
+                        segs.Add(converted);
+                    }
+                }
+
+                return (JToken)new JObject
+                {
+                    ["user_id"] = ParseId(node.UserId, nameof(node.UserId)),
+                    ["sender_name"] = node.SenderName,
+                    ["segments"] = segs,
+                };
+            }));
+
+            JObject data = new()
+            {
+                ["messages"] = messages,
+            };
+
+            if (!string.IsNullOrWhiteSpace(forward.Title))
+            {
+                data["title"] = forward.Title;
+            }
+
+            if (!string.IsNullOrWhiteSpace(forward.Summary))
+            {
+                data["summary"] = forward.Summary;
+            }
+
+            return Segment("forward", data);
+        }
+
+        private static JObject? ConvertSegmentStatic(MessageSegment segment)
+        {
+            return segment switch
+            {
+                TextSegment text => Segment("text", new JObject { ["text"] = text.Text }),
+                MentionSegment mention => Segment("mention", new JObject { ["user_id"] = ParseId(mention.UserId, nameof(mention.UserId)) }),
+                MentionAllSegment => Segment("mention_all", new JObject()),
+                ImageUrlSegment image => Segment("image", new JObject { ["uri"] = image.Url }),
+                ImageSegment image => Segment("image", new JObject { ["uri"] = ToBase64Uri(image.Data) }),
+                FaceSegment face => Segment("face", new JObject { ["face_id"] = face.FaceId, ["is_large"] = face.IsLarge }),
+                _ => null,
+            };
+        }
+
         private static JObject Segment(string type, JObject data)
         {
             data.RemoveNullValues();
@@ -422,6 +485,11 @@ namespace Windy.SDK.Adaptor.Milky
                     "record" => "[语音]",
                     "video" => "[视频]",
                     "file" => $"[文件:{segmentData.Value<string>("file_name") ?? ""}]",
+                    "reply" => "[回复消息]",
+                    "forward" => "[转发消息]",
+                    "light_app" => $"[小程序:{segmentData.Value<string>("app_name") ?? ""}]",
+                    "market_face" => "[商城表情]",
+                    "xml" => "[XML消息]",
                     _ => $"[{type}]",
                 });
             }

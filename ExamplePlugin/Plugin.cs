@@ -137,7 +137,7 @@ namespace ExamplePlugin
             };
 
             MessageContent content = new MessageContent()
-                .AddMarkdown("# **黑体大标题**\n\n- 功能1\n- 功能2\n- 功能3")
+                .AddMarkdown($"# **黑体大标题**\n\n- 功能1\n- 功能2\n- 功能3\n{QQOfficialLabel.CommandInput("/help")}")
                 .AddButton(keyboard);
 
             await args.Adaptor.SendMessage(content);
@@ -170,11 +170,13 @@ namespace ExamplePlugin
         {
             await args.Adaptor.SendMessage("如果看到这条消息，说明 ProHandle 没有拦截成功.");
         }
+
         [Command("主动", "测试", MessageScene.Group)]
         [Command("主动", "测试", MessageScene.GroupAt)]
         public void TestMessgae(CommandArgs args)
         {
-            Adaptor.SendMessage(args.Message.GroupId!, $"这是一条主动消息测试!");
+             Adaptor.SendMessage(args.Message.GroupId!, $"这是一条主动消息测试!");
         }
-    }
+
+     }
 }

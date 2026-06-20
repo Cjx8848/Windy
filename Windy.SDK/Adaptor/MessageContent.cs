@@ -1,3 +1,5 @@
+using Windy.SDK.Events;
+
 namespace Windy.SDK.Adaptor
 {
     public sealed class MessageContent
@@ -77,6 +79,30 @@ namespace Windy.SDK.Adaptor
             return this;
         }
 
+        public MessageContent AddFace(string faceId, bool isLarge = false)
+        {
+            segments.Add(new FaceSegment(faceId, isLarge));
+            return this;
+        }
+
+        public MessageContent AddReply(string messageSeq, string? senderId = null, string? senderName = null)
+        {
+            segments.Add(new ReplySegment(messageSeq, senderId, senderName));
+            return this;
+        }
+
+        public MessageContent AddForward(IReadOnlyList<ForwardedMessageNode> messages, string? title = null, string? summary = null)
+        {
+            segments.Add(new ForwardSegment(messages, title, summary));
+            return this;
+        }
+
+        public MessageContent AddLightApp(string jsonPayload, string? appName = null)
+        {
+            segments.Add(new LightAppSegment(jsonPayload, appName));
+            return this;
+        }
+
         public string PlainText => string.Concat(segments.OfType<TextSegment>().Select(segment => segment.Text));
     }
 
@@ -104,6 +130,36 @@ namespace Windy.SDK.Adaptor
 
     public sealed record MentionAllSegment : MessageSegment;
 
+    public sealed record FaceSegment(string FaceId, bool IsLarge = false) : MessageSegment;
+
+    public sealed record ReplySegment(string MessageSeq, string? SenderId = null, string? SenderName = null) : MessageSegment;
+
+    public sealed record ForwardSegment(IReadOnlyList<ForwardedMessageNode> Messages, string? Title = null, string? Summary = null) : MessageSegment;
+
+    public sealed record LightAppSegment(string JsonPayload, string? AppName = null) : MessageSegment;
+
+    public sealed record MarketFaceSegment : MessageSegment
+    {
+        public string EmojiId { get; init; } = "";
+        public long EmojiPackageId { get; init; }
+        public string Key { get; init; } = "";
+        public string Url { get; init; } = "";
+        public string Summary { get; init; } = "";
+    }
+
+    public sealed record XmlSegment : MessageSegment
+    {
+        public int ServiceId { get; init; }
+        public string XmlPayload { get; init; } = "";
+    }
+
+    public sealed class ForwardedMessageNode
+    {
+        public string UserId { get; set; } = "";
+        public string SenderName { get; set; } = "";
+        public MessageContent Message { get; set; } = new();
+    }
+
     public sealed class ButtonKeyboard
     {
         public string? Id { get; set; }
@@ -127,5 +183,52 @@ namespace Windy.SDK.Adaptor
         public int ActionType { get; set; } = 2;
 
         public int PermissionType { get; set; } = 2;
+    }
+
+    public sealed class ContextMessageContent
+    {
+        private readonly MessageEventArgs _message;
+        private readonly MessageContent _content = new();
+
+        internal ContextMessageContent(MessageEventArgs message)
+        {
+            _message = message;
+        }
+
+        public ContextMessageContent AddReply()
+        {
+            _content.AddReply(_message.MessageId, _message.AuthorId, _message.AuthorName);
+            return this;
+        }
+
+        public ContextMessageContent AddText(string text) { _content.AddText(text); return this; }
+
+        public ContextMessageContent AddImage(byte[] data, string fileName = "upload.jpg", string contentType = "image/jpeg") { _content.AddImage(data, fileName, contentType); return this; }
+
+        public ContextMessageContent AddImageUrl(string url) { _content.AddImageUrl(url); return this; }
+
+        public ContextMessageContent AddMention(string userId) { _content.AddMention(userId); return this; }
+
+        public ContextMessageContent AddMentionAll() { _content.AddMentionAll(); return this; }
+
+        public ContextMessageContent AddFace(string faceId, bool isLarge = false) { _content.AddFace(faceId, isLarge); return this; }
+
+        public ContextMessageContent AddAudio(string uri) { _content.AddAudio(uri); return this; }
+
+        public ContextMessageContent AddVideo(string uri, string? thumbnailUri = null) { _content.AddVideo(uri, thumbnailUri); return this; }
+
+        public ContextMessageContent AddFile(string uri, string fileName, string parentFolderId = "/") { _content.AddFile(uri, fileName, parentFolderId); return this; }
+
+        public ContextMessageContent AddForward(IReadOnlyList<ForwardedMessageNode> messages, string? title = null, string? summary = null) { _content.AddForward(messages, title, summary); return this; }
+
+        public ContextMessageContent AddLightApp(string jsonPayload, string? appName = null) { _content.AddLightApp(jsonPayload, appName); return this; }
+
+        public ContextMessageContent AddMarkdown(string markdown) { _content.AddMarkdown(markdown); return this; }
+
+        public ContextMessageContent AddButton(ButtonKeyboard keyboard) { _content.AddButton(keyboard); return this; }
+
+        public static implicit operator MessageContent(ContextMessageContent builder) => builder._content;
+
+        public MessageContent Build() => _content;
     }
 }

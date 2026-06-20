@@ -178,6 +178,36 @@ namespace ExamplePlugin.Milky
             await args.Adaptor.SendMessage("如果看到这条消息，说明 Milky ProHandle 没有拦截成功.");
         }
 
+        [Command("milky表情", "Milky QQ 表情示例", MessageScene.Group)]
+        [Command("milky表情", "Milky QQ 表情示例", MessageScene.Private)]
+        public async Task FaceAsync(CommandArgs args)
+        {
+            await args.Adaptor.SendMessage(new MessageContent().AddFace("4").AddText(" Milky 表情示例"));
+        }
+
+    [Command("milky回复", "Milky 回复消息示例", MessageScene.Group)]
+    [Command("milky回复", "Milky 回复消息示例", MessageScene.Private)]
+    public async Task ReplyAsync(CommandArgs args)
+    {
+        await args.Adaptor.SendMessage(
+            args.CreateMessageContent().AddReply().AddText(" Milky 回复消息示例"));
+    }
+
+        [Command("milky转发", "Milky 转发消息示例", MessageScene.Group)]
+        [Command("milky转发", "Milky 转发消息示例", MessageScene.Private)]
+        public async Task ForwardAsync(CommandArgs args)
+        {
+            MessageContent content = new MessageContent()
+                .AddForward([
+                    new ForwardedMessageNode
+                    {
+                        UserId = args.Message.AuthorId,
+                        SenderName = args.Message.AuthorName,
+                        Message = new MessageContent().AddText("这是一条 Milky 转发消息的内容示例"),
+                    }
+                ], "Milky 转发示例");
+            await args.Adaptor.SendMessage(content);
+        }
         private const string SamplePngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
     }
 }
