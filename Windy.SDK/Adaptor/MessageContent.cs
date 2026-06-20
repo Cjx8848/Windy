@@ -47,6 +47,36 @@ namespace Windy.SDK.Adaptor
             return this;
         }
 
+        public MessageContent AddAudio(string uri)
+        {
+            segments.Add(new AudioSegment(uri));
+            return this;
+        }
+
+        public MessageContent AddVideo(string uri, string? thumbnailUri = null)
+        {
+            segments.Add(new VideoSegment(uri, thumbnailUri));
+            return this;
+        }
+
+        public MessageContent AddFile(string uri, string fileName, string parentFolderId = "/")
+        {
+            segments.Add(new FileSegment(uri, fileName, parentFolderId));
+            return this;
+        }
+
+        public MessageContent AddMention(string userId)
+        {
+            segments.Add(new MentionSegment(userId));
+            return this;
+        }
+
+        public MessageContent AddMentionAll()
+        {
+            segments.Add(new MentionAllSegment());
+            return this;
+        }
+
         public string PlainText => string.Concat(segments.OfType<TextSegment>().Select(segment => segment.Text));
     }
 
@@ -63,6 +93,16 @@ namespace Windy.SDK.Adaptor
     public sealed record MarkdownTemplateSegment(string TemplateId, IDictionary<string, string> Parameters) : MessageSegment;
 
     public sealed record ButtonSegment(ButtonKeyboard Keyboard) : MessageSegment;
+
+    public sealed record AudioSegment(string Uri) : MessageSegment;
+
+    public sealed record VideoSegment(string Uri, string? ThumbnailUri = null) : MessageSegment;
+
+    public sealed record FileSegment(string Uri, string FileName, string ParentFolderId = "/") : MessageSegment;
+
+    public sealed record MentionSegment(string UserId) : MessageSegment;
+
+    public sealed record MentionAllSegment : MessageSegment;
 
     public sealed class ButtonKeyboard
     {

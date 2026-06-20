@@ -216,6 +216,11 @@ namespace Windy.SDK.Adaptor.QQOfficial
             plugin.RegisterEventHook(type.ToEventName(), args => handler(new QQOfficialSimpleEventArgs(args, type)), priority);
         }
 
+        public static void RegisterQQOfficialGroupAtNoCommandHook(this WindyPlugin plugin, Func<MessageEventArgs, Task> handler, int priority = 0)
+        {
+            plugin.RegisterGroupAtNoCommandHook(handler, priority);
+        }
+
         public static void RegisterGroupAddRobotHook(this WindyPlugin plugin, Func<QQOfficialGroupOperationEventArgs, Task> handler, int priority = 0)
         {
             plugin.RegisterEventHook(QQOfficialEventType.GroupAddRobot.ToEventName(), args => handler(new QQOfficialGroupOperationEventArgs(args, QQOfficialEventType.GroupAddRobot)), priority);

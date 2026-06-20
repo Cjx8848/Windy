@@ -51,16 +51,28 @@ namespace Windy.SDK.Adaptor.QQOfficial
             if (string.IsNullOrWhiteSpace(AppId) || string.IsNullOrWhiteSpace(ClientSecret))
             {
                 Message.Yellow("QQ官方适配器缺少 AppId 或 ClientSecret，已跳过连接.");
+                IsActive = false;
                 return;
             }
 
-            await RefreshAccessTokenAsync(cancellationToken);
-            cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            webSocket = new ClientWebSocket();
-            await webSocket.ConnectAsync(new Uri(Gateway), cancellationTokenSource.Token);
-            await SendIdentifyAsync(cancellationTokenSource.Token);
-            receiveTask = ReceiveLoopAsync(webSocket, cancellationTokenSource.Token);
-            Message.Blue("QQ官方适配器已启动.");
+            try
+            {
+                await RefreshAccessTokenAsync(cancellationToken);
+                cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                webSocket = new ClientWebSocket();
+                await webSocket.ConnectAsync(new Uri(Gateway), cancellationTokenSource.Token);
+                IsActive = true;
+                await SendIdentifyAsync(cancellationTokenSource.Token);
+                receiveTask = ReceiveLoopAsync(webSocket, cancellationTokenSource.Token);
+                Message.Blue("QQ官方适配器已启动.");
+            }
+            catch (Exception ex)
+            {
+                IsActive = false;
+                Message.Red($"QQ官方适配器连接失败，已进入 inactive 状态: {ex.Message}");
+                cancellationTokenSource ??= CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                _ = ReconnectAsync(cancellationTokenSource.Token);
+            }
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken = default)
@@ -73,10 +85,16 @@ namespace Windy.SDK.Adaptor.QQOfficial
 
             webSocket?.Dispose();
             webSocket = null;
+            IsActive = false;
         }
 
         public override async Task SendMessage(SendTarget target, MessageContent content, SendOptions? options = null, CancellationToken cancellationToken = default)
         {
+            if (!EnsureActive("发送 QQ 官方消息"))
+            {
+                return;
+            }
+
             options ??= new SendOptions { Passive = false };
             string route = target.Type switch
             {
@@ -330,6 +348,7 @@ namespace Windy.SDK.Adaptor.QQOfficial
                 }
 
                 ClientWebSocket? oldSocket = webSocket;
+                IsActive = false;
                 webSocket = null;
                 if (oldSocket?.State == WebSocketState.Open || oldSocket?.State == WebSocketState.CloseReceived)
                 {
@@ -348,6 +367,7 @@ namespace Windy.SDK.Adaptor.QQOfficial
                 ClientWebSocket newSocket = new();
                 await newSocket.ConnectAsync(new Uri(Gateway), cancellationToken);
                 webSocket = newSocket;
+                IsActive = true;
 
                 if (!string.IsNullOrWhiteSpace(sessionId))
                 {
@@ -405,7 +425,7 @@ namespace Windy.SDK.Adaptor.QQOfficial
                     PublishMessage(CreateGroupMessage(data, MessageScene.GroupAt, envelope));
                     break;
                 case "GROUP_MESSAGE_CREATE":
-                    PublishMessage(CreateGroupMessage(data, MessageScene.Group, envelope));
+                    PublishMessage(CreateGroupMessage(data, IsMentioningBot(data) ? MessageScene.GroupAt : MessageScene.Group, envelope));
                     break;
                 case "C2C_MESSAGE_CREATE":
                     PublishMessage(CreatePrivateMessage(data, envelope));
@@ -438,7 +458,7 @@ namespace Windy.SDK.Adaptor.QQOfficial
                 Raw = envelope,
                 Role = ParseGroupMemberRole(memberRole),
             };
-            Message.Yellow($"[{args.GroupId}]{args.AuthorName}({args.Role}):{args.Content}");
+            Message.Yellow($"[QQOfficial][{args.GroupId}]{args.AuthorName}({args.Role}):{args.Content}");
             AddAttachments(args, data);
             return args;
         }
@@ -462,7 +482,7 @@ namespace Windy.SDK.Adaptor.QQOfficial
                 EventId = envelope.Value<string>("id"),
                 Raw = envelope,
             };
-            Message.Yellow($"[{args.AuthorId}]{args.AuthorName}:{args.Content}");
+            Message.Yellow($"[QQOfficial][{args.AuthorId}]{args.AuthorName}:{args.Content}");
             AddAttachments(args, data);
             return args;
         }
@@ -487,6 +507,11 @@ namespace Windy.SDK.Adaptor.QQOfficial
             }
 
             return content.TrimStart();
+        }
+
+        private static bool IsMentioningBot(JObject data)
+        {
+            return data["mentions"] is JArray mentions && mentions.OfType<JObject>().Any(mention => mention.Value<bool?>("is_you") == true);
         }
 
         private static void RemoveMention(ref string content, string? id)

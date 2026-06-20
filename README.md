@@ -373,7 +373,60 @@ Markdown + 按钮同发
 
 ## Milky 适配器
 
-`MilkyAdaptor` 当前是预留结构，尚未完成协议连接与消息发送。后续计划基于 Milky/Sora 接入。
+`MilkyAdaptor` 已实现基础接入，参考了本地 Sora 的 Milky 适配器结构：HTTP API 调用 `/api/{action}`，WebSocket 事件连接 `/event`。
+
+当前支持：
+
+```text
+WebSocket 事件接收
+断线自动重连
+send_group_message
+send_private_message
+upload_group_file
+upload_private_file
+文本消息
+图片消息（byte[] 会转 base64://）
+语音消息（record）
+视频消息
+文件上传
+提及用户
+提及全体
+消息接收解析
+附件提取
+```
+
+Milky 不支持 QQ 官方 Markdown 和按钮消息。SDK 会把 Markdown 降级为普通文本，按钮消息会跳过并输出日志。
+
+Milky 配置示例：
+
+```json
+{
+  "Name": "milky",
+  "Enabled": true,
+  "Settings": {
+    "Endpoint": "ws://127.0.0.1:3001",
+    "AccessToken": "",
+    "ReconnectInterval": "5000",
+    "DropSelfMessage": "true"
+  }
+}
+```
+
+也可以使用拆分配置：
+
+```json
+{
+  "Name": "milky",
+  "Enabled": true,
+  "Settings": {
+    "Host": "127.0.0.1",
+    "Port": "3000",
+    "Prefix": "milky",
+    "UseTls": "false",
+    "AccessToken": ""
+  }
+}
+```
 
 ## 备注
 

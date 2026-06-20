@@ -27,7 +27,11 @@
                     await Hooks.ExecuteMessageAsync(args, cancellationToken);
                     if (!args.Handled)
                     {
-                        await Commands.ExecuteAsync(args, cancellationToken);
+                        bool executed = await Commands.ExecuteAsync(args, Hooks, cancellationToken);
+                        if (!executed && !args.Handled)
+                        {
+                            await Hooks.ExecuteGroupAtNoCommandAsync(args, cancellationToken);
+                        }
                     }
                 };
                 adaptor.EventReceived += async (_, args) => await Hooks.ExecuteEventAsync(args, cancellationToken);

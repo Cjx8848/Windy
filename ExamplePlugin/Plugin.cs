@@ -23,11 +23,49 @@ namespace ExamplePlugin
         public override void Initialize()
         {
             JsonTool.Create<Config>(Path.Combine(AppContext.BaseDirectory, "Config", "Example.json")).Read();
+            RegisterMessageHook(OnMessageAsync, priority: 100);
+            RegisterProHandleHook(OnProHandleAsync, priority: 100);
+            this.RegisterQQOfficialGroupAtNoCommandHook(OnGroupAtNoCommandAsync, priority: 100);
             this.RegisterReadyHook(OnReadyAsync, priority: 100);
             this.RegisterResumedHook(OnResumedAsync, priority: 100);
+            this.RegisterFriendAddHook(OnFriendAddAsync, priority: 100);
             this.RegisterGroupAddRobotHook(OnGroupAddRobotAsync, priority: 100);
             this.RegisterGroupDelRobotHook(OnGroupDelRobotAsync, priority: 100);
+            this.RegisterGroupMemberAddHook(OnGroupMemberAddAsync, priority: 100);
+            this.RegisterGroupMemberRemoveHook(OnGroupMemberRemoveAsync, priority: 100);
         }
+
+        //提前处理消息
+        private static Task OnMessageAsync(MessageEventArgs args)
+        {
+            if (!args.Content.Trim().Equals("消息拦截", StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.CompletedTask;
+            }
+
+            args.Handled = true;
+            return args.Adaptor.SendMessage("QQ 官方 OnMessage Hook 已拦截，后续命令不会执行.");
+        }
+
+        //提前处理指令
+        private static Task OnProHandleAsync(CommandArgs args)
+        {
+            if (!args.CommandName.Equals("pro拦截", StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.CompletedTask;
+            }
+
+            args.Handled = true;
+            return args.Adaptor.SendMessage("QQ 官方 ProHandle 已拦截，命令方法不会执行.");
+        }
+
+        //处理没有匹配指令 但是是at消息
+        private static Task OnGroupAtNoCommandAsync(MessageEventArgs args)
+        {
+            args.Handled = true;
+            return args.Adaptor.SendMessage($"收到没有匹配指令的 QQ 官方 GroupAt 消息：{args.Content}");
+        }
+
         private static Task OnReadyAsync(QQOfficialReadyEventArgs args)
         {
             Message.Green($"[Example][{args.Type}] session={args.SessionId}");
@@ -47,9 +85,27 @@ namespace ExamplePlugin
             return Task.CompletedTask;
         }
 
+        private static Task OnFriendAddAsync(QQOfficialUserOperationEventArgs args)
+        {
+            Message.Green($"[Example][{args.Type}] user={args.OpenId}, timestamp={args.Timestamp}");
+            return Task.CompletedTask;
+        }
+
         private static Task OnGroupDelRobotAsync(QQOfficialGroupOperationEventArgs args)
         {
             Message.Yellow($"[Example][{args.Type}] group={args.GroupOpenId}, operator={args.OperatorMemberOpenId}, timestamp={args.Timestamp}");
+            return Task.CompletedTask;
+        }
+
+        private static Task OnGroupMemberAddAsync(QQOfficialGroupMemberEventArgs args)
+        {
+            Message.Green($"[Example][{args.Type}] group={args.GroupOpenId}, member={args.MemberOpenId}, operator={args.OperatorMemberOpenId}, timestamp={args.Timestamp}");
+            return Task.CompletedTask;
+        }
+
+        private static Task OnGroupMemberRemoveAsync(QQOfficialGroupMemberEventArgs args)
+        {
+            Message.Yellow($"[Example][{args.Type}] group={args.GroupOpenId}, member={args.MemberOpenId}, operator={args.OperatorMemberOpenId}, timestamp={args.Timestamp}");
             return Task.CompletedTask;
         }
 
@@ -92,6 +148,27 @@ namespace ExamplePlugin
         public async Task TestUID(CommandArgs args)
         {
             await args.Adaptor.SendMessage($"{args.Message.GroupId}\n{args.Message.AuthorId}\n{args.Message.AuthorName}");
+        }
+
+        [Command("艾特", "QQ 官方文本里艾特发送人", MessageScene.Group)]
+        [Command("艾特", "QQ 官方文本里艾特发送人", MessageScene.GroupAt)]
+        public async Task MentionUserAsync(CommandArgs args)
+        {
+            await args.Adaptor.SendMessage($"{QQOfficialLabel.At(args.Message.AuthorId)} 这是 QQ 官方文本 AT 示例");
+        }
+
+        [Command("全体", "QQ 官方文本里艾特全体示例", MessageScene.Group)]
+        [Command("全体", "QQ 官方文本里艾特全体示例", MessageScene.GroupAt)]
+        public async Task MentionAllAsync(CommandArgs args)
+        {
+            await args.Adaptor.SendMessage($"{QQOfficialLabel.AtEveryone()} 这是 QQ 官方 @全体 示例");
+        }
+
+        [Command("pro拦截", "演示 ProHandle 拦截", MessageScene.Group)]
+        [Command("pro拦截", "演示 ProHandle 拦截", MessageScene.GroupAt)]
+        public async Task ProHandleBlockedAsync(CommandArgs args)
+        {
+            await args.Adaptor.SendMessage("如果看到这条消息，说明 ProHandle 没有拦截成功.");
         }
         [Command("主动", "测试", MessageScene.Group)]
         [Command("主动", "测试", MessageScene.GroupAt)]

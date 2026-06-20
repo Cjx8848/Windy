@@ -1,4 +1,5 @@
 using Windy.SDK.Adaptor;
+using Windy.SDK.Command;
 using Windy.SDK.Events;
 using Windy.SDK.Hooks;
 
@@ -33,9 +34,19 @@ namespace Windy.SDK.Plugin
             Hooks.RegisterMessage(this, handler, priority);
         }
 
+        public void RegisterGroupAtNoCommandHook(Func<MessageEventArgs, Task> handler, int priority = 0)
+        {
+            Hooks.RegisterGroupAtNoCommand(this, handler, priority);
+        }
+
         public void RegisterEventHook(string eventType, Func<AdaptorEventArgs, Task> handler, int priority = 0)
         {
             Hooks.RegisterEvent(this, eventType, handler, priority);
+        }
+
+        public void RegisterProHandleHook(Func<CommandArgs, Task> handler, int priority = 0)
+        {
+            Hooks.RegisterProHandle(this, handler, priority);
         }
 
         public virtual void Dispose()

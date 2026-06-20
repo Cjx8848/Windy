@@ -15,6 +15,8 @@
 
         public AdaptorConfig Config { get; }
 
+        public bool IsActive { get; protected set; }
+
         public virtual AdaptorCapabilities Capabilities => AdaptorCapabilities.Text;
 
         public event EventHandler<Events.MessageEventArgs>? MessageReceived;
@@ -26,6 +28,17 @@
         public abstract Task StopAsync(CancellationToken cancellationToken = default);
 
         public abstract Task SendMessage(SendTarget target, MessageContent content, SendOptions? options = null, CancellationToken cancellationToken = default);
+
+        protected bool EnsureActive(string action)
+        {
+            if (IsActive)
+            {
+                return true;
+            }
+
+            Message.Yellow($"适配器 {Name} 当前未连接，已阻止 {action}.");
+            return false;
+        }
 
         public virtual Task SendMessage(string id, MessageContent content, CancellationToken cancellationToken = default)
         {

@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using Windy.SDK.Events;
+using Windy.SDK.Hooks;
 using Windy.SDK.Plugin;
 
 namespace Windy.SDK.Command
@@ -23,7 +24,12 @@ namespace Windy.SDK.Command
             }
         }
 
-        public async Task<bool> ExecuteAsync(MessageEventArgs message, CancellationToken cancellationToken = default)
+        public Task<bool> ExecuteAsync(MessageEventArgs message, CancellationToken cancellationToken = default)
+        {
+            return ExecuteAsync(message, null, cancellationToken);
+        }
+
+        public async Task<bool> ExecuteAsync(MessageEventArgs message, HookRegistry? hooks, CancellationToken cancellationToken = default)
         {
             string[] args = ParseCommandLine(message.Content.Trim());
             if (args.Length == 0)
@@ -41,6 +47,15 @@ namespace Windy.SDK.Command
             try
             {
                 CommandArgs commandArgs = new(command.Name, args[1..], message);
+                if (hooks != null)
+                {
+                    await hooks.ExecuteProHandleAsync(commandArgs, cancellationToken);
+                    if (commandArgs.Handled)
+                    {
+                        return true;
+                    }
+                }
+
                 object? result = Invoke(command, commandArgs);
                 if (result is Task task)
                 {
