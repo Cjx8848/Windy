@@ -10,7 +10,7 @@ namespace Windy.SDK
         private static readonly object SyncRoot = new();
         private static readonly Regex ColorRegex = new(@"\[c/(?<color>[0-9a-fA-F]{6}):(?<text>.*?)\]", RegexOptions.Compiled);
 
-        public static string LogDirectory { get; set; } = Path.Combine(AppContext.BaseDirectory, "logs");
+        public static string LogDirectory { get; set; } = Path.Combine(WindyRuntime.BasicPath, "logs");
 
         public static string LogFileName { get; set; } = "latest.log";
 

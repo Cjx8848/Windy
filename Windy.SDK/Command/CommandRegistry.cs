@@ -15,11 +15,16 @@ namespace Windy.SDK.Command
         public void RegisterFromPlugin(WindyPlugin plugin)
         {
             const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-            foreach (MethodInfo method in plugin.GetType().GetMethods(flags))
+            foreach (Type type in plugin.GetType().Assembly.GetExportedTypes())
             {
-                foreach (CommandAttribute attribute in method.GetCustomAttributes<CommandAttribute>())
+                foreach (MethodInfo method in type.GetMethods(flags))
                 {
-                    Register(attribute, method, method.IsStatic ? null : plugin, plugin);
+                    foreach (CommandAttribute attribute in method.GetCustomAttributes<CommandAttribute>())
+                    {
+                        object? target = method.IsStatic ? null : Activator.CreateInstance(type)
+                            ?? throw new InvalidOperationException($"无法创建指令 '{type.FullName}'.");
+                        Register(attribute, method, target, plugin);
+                    }
                 }
             }
         }

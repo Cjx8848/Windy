@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.Loader;
 using Windy.SDK.Adaptor;
 using Windy.SDK.Command;
 using Windy.SDK.Hooks;
@@ -8,26 +9,42 @@ namespace Windy.SDK.Plugin
     public sealed class PluginManager
     {
         private readonly Dictionary<string, Assembly> loadedAssemblies = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> dependencyDirectories = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<WindyPlugin> plugins = new();
+        private bool resolverRegistered;
 
         public IReadOnlyList<WindyPlugin> Plugins => plugins;
 
         public void Load(string pluginsDirectory, IReadOnlyList<Adaptor.Adaptor> adaptors, CommandRegistry commands, HookRegistry hooks)
         {
             Directory.CreateDirectory(pluginsDirectory);
+
+            if (!resolverRegistered)
+            {
+                AssemblyLoadContext.Default.Resolving += ResolveAssembly;
+                resolverRegistered = true;
+            }
+
             LoadFromAssembly(Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly(), adaptors, commands, hooks);
 
             foreach (string pluginPath in Directory.GetFiles(pluginsDirectory, "*.dll"))
             {
-                if (loadedAssemblies.ContainsKey(pluginPath))
+                var fullPluginPath = Path.GetFullPath(pluginPath);
+                if (loadedAssemblies.ContainsKey(fullPluginPath))
                 {
                     continue;
                 }
 
                 try
                 {
-                    Assembly assembly = Assembly.Load(File.ReadAllBytes(pluginPath));
-                    loadedAssemblies.Add(pluginPath, assembly);
+                    var directory = Path.GetDirectoryName(fullPluginPath);
+                    if (!string.IsNullOrEmpty(directory))
+                    {
+                        dependencyDirectories.Add(directory);
+                    }
+
+                    Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(fullPluginPath);
+                    loadedAssemblies.Add(fullPluginPath, assembly);
                     LoadFromAssembly(assembly, adaptors, commands, hooks);
                 }
                 catch (BadImageFormatException)
@@ -45,6 +62,22 @@ namespace Windy.SDK.Plugin
             }
 
             plugins.Clear();
+        }
+
+        private Assembly? ResolveAssembly(AssemblyLoadContext context, AssemblyName assemblyName)
+        {
+            if (string.IsNullOrEmpty(assemblyName.Name)) return null;
+
+            foreach (var directory in dependencyDirectories.Append(AppContext.BaseDirectory))
+            {
+                var path = Path.Combine(directory, assemblyName.Name + ".dll");
+                if (File.Exists(path))
+                {
+                    return context.LoadFromAssemblyPath(path);
+                }
+            }
+
+            return null;
         }
 
         private void LoadFromAssembly(Assembly assembly, IReadOnlyList<Adaptor.Adaptor> adaptors, CommandRegistry commands, HookRegistry hooks)

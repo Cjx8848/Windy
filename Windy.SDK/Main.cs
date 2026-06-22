@@ -1,4 +1,6 @@
-﻿namespace Windy.SDK
+﻿using System.Reflection;
+
+namespace Windy.SDK
 {
     public static class WindyRuntime
     {
@@ -38,7 +40,7 @@
                 Adaptors.Add(adaptor);
             }
 
-            Plugins.Load(Path.Combine(AppContext.BaseDirectory, config.Plugins.Directory), Adaptors, Commands, Hooks);
+            Plugins.Load(Path.Combine(BasicPath, config.Plugins.Directory), Adaptors, Commands, Hooks);
 
             foreach (Adaptor.Adaptor adaptor in Adaptors)
             {
@@ -80,6 +82,17 @@
                 _ => throw new InvalidOperationException($"未知适配器: {config.Name}"),
             };
         }
-
+        public static string BasicPath
+        {
+            get
+            {
+                var dir = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory)!.Parent;
+                if (dir != null && dir.GetDirectories().ToList().Find(d => d.Name.Contains("bin")) != null)
+                {
+                    return dir.FullName;
+                }
+                return AppDomain.CurrentDomain.BaseDirectory;
+            }
+        }
     }
 }

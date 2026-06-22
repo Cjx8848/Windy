@@ -6,12 +6,14 @@ namespace Windy;
 
 public class Program
 {
+    public static string BasicPath => WindyRuntime.BasicPath;
+
     public static async Task Main(string[] args)
     {
         AnsiConsole.Write(new FigletText("Windy").Color(Color.Aqua));
         Console.Title = "Windy | Cjx8848";
 
-        var config = JsonTool.Create<WindyConfig>(Path.Combine(AppContext.BaseDirectory, "Config", "Windy.json"))
+        var config = JsonTool.Create<WindyConfig>(Path.Combine(WindyRuntime.BasicPath, "Config", "Windy.json"))
             .InitMessage("Windy 配置已创建，请启用需要的适配器后重启.")
             .Success("Windy 配置读取完成.")
             .Error("Windy 配置读取失败:")

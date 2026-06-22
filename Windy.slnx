@@ -1,8 +1,11 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
   <Project Path="../CSFTBot/CSFTBot.csproj" />
-  <Project Path="../Patchouli/Patchouli.csproj" />
-  <Project Path="ExamplePlugin/ExamplePlugin.csproj" />
+  <Project Path="../Patchouli/CSFTBot.Patchouli.csproj" />
   <Project Path="ExamplePlugin.Milky/ExamplePlugin.Milky.csproj" />
+  <Project Path="ExamplePlugin/ExamplePlugin.csproj" />
   <Project Path="Windy.SDK/Windy.SDK.csproj" />
   <Project Path="Windy/Windy.csproj" />
 </Solution>
