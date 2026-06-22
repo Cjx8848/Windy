@@ -10,6 +10,7 @@ namespace Windy.SDK.Plugin
     {
         private readonly Dictionary<string, Assembly> loadedAssemblies = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> dependencyDirectories = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, byte[]> assemblyCache = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<WindyPlugin> plugins = new();
         private bool resolverRegistered;
 
@@ -18,6 +19,10 @@ namespace Windy.SDK.Plugin
         public void Load(string pluginsDirectory, IReadOnlyList<Adaptor.Adaptor> adaptors, CommandRegistry commands, HookRegistry hooks)
         {
             Directory.CreateDirectory(pluginsDirectory);
+            var fullPluginsDir = Path.GetFullPath(pluginsDirectory);
+            dependencyDirectories.Add(fullPluginsDir);
+
+            PreCacheAssemblies(fullPluginsDir);
 
             if (!resolverRegistered)
             {
@@ -37,19 +42,41 @@ namespace Windy.SDK.Plugin
 
                 try
                 {
-                    var directory = Path.GetDirectoryName(fullPluginPath);
-                    if (!string.IsNullOrEmpty(directory))
+                    if (assemblyCache.TryGetValue(fullPluginPath, out var raw))
                     {
-                        dependencyDirectories.Add(directory);
+                        using var ms = new MemoryStream(raw, false);
+                        Assembly assembly = AssemblyLoadContext.Default.LoadFromStream(ms);
+                        loadedAssemblies.Add(fullPluginPath, assembly);
+                        LoadFromAssembly(assembly, adaptors, commands, hooks);
                     }
-
-                    Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(fullPluginPath);
-                    loadedAssemblies.Add(fullPluginPath, assembly);
-                    LoadFromAssembly(assembly, adaptors, commands, hooks);
                 }
                 catch (BadImageFormatException)
                 {
                 }
+            }
+        }
+
+        private void PreCacheAssemblies(string directory)
+        {
+            try
+            {
+                foreach (string dllPath in Directory.GetFiles(directory, "*.dll", SearchOption.TopDirectoryOnly))
+                {
+                    var fullPath = Path.GetFullPath(dllPath);
+                    if (!assemblyCache.ContainsKey(fullPath))
+                    {
+                        try
+                        {
+                            assemblyCache[fullPath] = File.ReadAllBytes(fullPath);
+                        }
+                        catch
+                        {
+                        }
+                    }
+                }
+            }
+            catch
+            {
             }
         }
 
@@ -71,9 +98,26 @@ namespace Windy.SDK.Plugin
             foreach (var directory in dependencyDirectories.Append(AppContext.BaseDirectory))
             {
                 var path = Path.Combine(directory, assemblyName.Name + ".dll");
-                if (File.Exists(path))
+                var fullPath = Path.GetFullPath(path);
+
+                if (assemblyCache.TryGetValue(fullPath, out var raw))
                 {
-                    return context.LoadFromAssemblyPath(path);
+                    using var ms = new MemoryStream(raw, false);
+                    return context.LoadFromStream(ms);
+                }
+
+                try
+                {
+                    if (File.Exists(fullPath))
+                    {
+                        var bytes = File.ReadAllBytes(fullPath);
+                        assemblyCache[fullPath] = bytes;
+                        using var ms = new MemoryStream(bytes, false);
+                        return context.LoadFromStream(ms);
+                    }
+                }
+                catch
+                {
                 }
             }
 
