@@ -46,7 +46,14 @@ namespace Windy.SDK.Command
             string key = GetKey(message.RawAdaptor.Type, message.Scene, commandName);
             if (!commands.TryGetValue(key, out CommandInfo? command))
             {
-                return false;
+                var adaptorType = message.RawAdaptor.Type;
+                var scene = message.Scene;
+                command = commands.Values.FirstOrDefault(c =>
+                    c.Plugin.RequiredAdaptor == adaptorType &&
+                    c.Scene == scene &&
+                    c.Parameters.Any(p => string.Equals(p, commandName, StringComparison.OrdinalIgnoreCase)));
+                if (command == null)
+                    return false;
             }
 
             try
