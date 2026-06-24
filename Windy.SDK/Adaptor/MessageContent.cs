@@ -104,6 +104,12 @@ namespace Windy.SDK.Adaptor
         }
 
         public string PlainText => string.Concat(segments.OfType<TextSegment>().Select(segment => segment.Text));
+
+        public MessageContent Merge(MessageContent other)
+        {
+            segments.AddRange(other.segments);
+            return this;
+        }
     }
 
     public abstract record MessageSegment;
@@ -226,6 +232,8 @@ namespace Windy.SDK.Adaptor
         public ContextMessageContent AddMarkdown(string markdown) { _content.AddMarkdown(markdown); return this; }
 
         public ContextMessageContent AddButton(ButtonKeyboard keyboard) { _content.AddButton(keyboard); return this; }
+
+        public ContextMessageContent Merge(MessageContent other) { _content.Merge(other); return this; }
 
         public static implicit operator MessageContent(ContextMessageContent builder) => builder._content;
 

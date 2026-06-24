@@ -7,7 +7,7 @@ using Windy.SDK.Events;
 
 namespace Windy.SDK.Adaptor.QQOfficial
 {
-    public sealed class QQOfficialAdaptor : Adaptor
+    public sealed partial class QQOfficialAdaptor : Adaptor
     {
         private readonly HttpClient httpClient = new();
         private readonly SemaphoreSlim reconnectLock = new(1, 1);
@@ -144,8 +144,12 @@ namespace Windy.SDK.Adaptor.QQOfficial
             if (markdown != null || markdownTemplate != null)
             {
                 payload["msg_type"] = 2;
+                var md = markdown != null ? markdown.Markdown : "";
+                var textContent = content.PlainText;
+                if (!string.IsNullOrEmpty(textContent))
+                    md = md + textContent;
                 payload["markdown"] = markdown != null
-                    ? new JObject { ["content"] = markdown.Markdown }
+                    ? new JObject { ["content"] = md }
                     : BuildMarkdownTemplate(markdownTemplate!);
             }
             else if (image != null)
@@ -159,8 +163,8 @@ namespace Windy.SDK.Adaptor.QQOfficial
             }
             else
             {
-                payload["msg_type"] = 0;
-                payload["content"] = content.PlainText;
+                payload["msg_type"] = 2;
+                payload["markdown"] = new JObject { ["content"] = content.PlainText };
             }
 
             if (button != null)

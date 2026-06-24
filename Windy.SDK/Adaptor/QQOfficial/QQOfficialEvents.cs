@@ -1,6 +1,5 @@
 using Newtonsoft.Json.Linq;
 using Windy.SDK.Events;
-using Windy.SDK.Plugin;
 
 namespace Windy.SDK.Adaptor.QQOfficial
 {
@@ -209,96 +208,151 @@ namespace Windy.SDK.Adaptor.QQOfficial
         public string MessageId => Data.Value<string>("message_id") ?? "";
     }
 
-    public static class QQOfficialHookExtensions
+    public sealed partial class QQOfficialAdaptor
     {
-        public static void RegisterQQOfficialEventHook(this WindyPlugin plugin, QQOfficialEventType type, Func<QQOfficialEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// QQ 官方网关 READY 事件。
+        /// </summary>
+        public event Func<QQOfficialReadyEventArgs, Task> OnReady
         {
-            plugin.RegisterEventHook(type.ToEventName(), args => handler(new QQOfficialSimpleEventArgs(args, type)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.Ready.ToEventName(), args => value(new QQOfficialReadyEventArgs(args)));
+            remove { }
         }
 
-        public static void RegisterQQOfficialGroupAtNoCommandHook(this WindyPlugin plugin, Func<MessageEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// QQ 官方网关 RESUMED 事件。
+        /// </summary>
+        public event Func<QQOfficialSimpleEventArgs, Task> OnResumed
         {
-            plugin.RegisterGroupAtNoCommandHook(handler, priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.Resumed.ToEventName(), args => value(new QQOfficialSimpleEventArgs(args, QQOfficialEventType.Resumed)));
+            remove { }
         }
 
-        public static void RegisterGroupAddRobotHook(this WindyPlugin plugin, Func<QQOfficialGroupOperationEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// 机器人被添加到群时触发。
+        /// </summary>
+        public event Func<QQOfficialGroupOperationEventArgs, Task> OnGroupAddRobot
         {
-            plugin.RegisterEventHook(QQOfficialEventType.GroupAddRobot.ToEventName(), args => handler(new QQOfficialGroupOperationEventArgs(args, QQOfficialEventType.GroupAddRobot)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.GroupAddRobot.ToEventName(), args => value(new QQOfficialGroupOperationEventArgs(args, QQOfficialEventType.GroupAddRobot)));
+            remove { }
         }
 
-        public static void RegisterGroupDelRobotHook(this WindyPlugin plugin, Func<QQOfficialGroupOperationEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// 机器人被移出群时触发。
+        /// </summary>
+        public event Func<QQOfficialGroupOperationEventArgs, Task> OnGroupDelRobot
         {
-            plugin.RegisterEventHook(QQOfficialEventType.GroupDelRobot.ToEventName(), args => handler(new QQOfficialGroupOperationEventArgs(args, QQOfficialEventType.GroupDelRobot)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.GroupDelRobot.ToEventName(), args => value(new QQOfficialGroupOperationEventArgs(args, QQOfficialEventType.GroupDelRobot)));
+            remove { }
         }
 
-        public static void RegisterGroupMemberAddHook(this WindyPlugin plugin, Func<QQOfficialGroupMemberEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// QQ 官方群成员增加时触发。
+        /// </summary>
+        public event Func<QQOfficialGroupMemberEventArgs, Task> OnGroupMemberAdd
         {
-            plugin.RegisterEventHook(QQOfficialEventType.GroupMemberAdd.ToEventName(), args => handler(new QQOfficialGroupMemberEventArgs(args, QQOfficialEventType.GroupMemberAdd)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.GroupMemberAdd.ToEventName(), args => value(new QQOfficialGroupMemberEventArgs(args, QQOfficialEventType.GroupMemberAdd)));
+            remove { }
         }
 
-        public static void RegisterGroupMemberRemoveHook(this WindyPlugin plugin, Func<QQOfficialGroupMemberEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// QQ 官方群成员减少时触发。
+        /// </summary>
+        public event Func<QQOfficialGroupMemberEventArgs, Task> OnGroupMemberRemove
         {
-            plugin.RegisterEventHook(QQOfficialEventType.GroupMemberRemove.ToEventName(), args => handler(new QQOfficialGroupMemberEventArgs(args, QQOfficialEventType.GroupMemberRemove)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.GroupMemberRemove.ToEventName(), args => value(new QQOfficialGroupMemberEventArgs(args, QQOfficialEventType.GroupMemberRemove)));
+            remove { }
         }
 
-        public static void RegisterGroupMsgReceiveHook(this WindyPlugin plugin, Func<QQOfficialGroupOperationEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// 群消息接收权限打开时触发。
+        /// </summary>
+        public event Func<QQOfficialGroupOperationEventArgs, Task> OnGroupMsgReceive
         {
-            plugin.RegisterEventHook(QQOfficialEventType.GroupMsgReceive.ToEventName(), args => handler(new QQOfficialGroupOperationEventArgs(args, QQOfficialEventType.GroupMsgReceive)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.GroupMsgReceive.ToEventName(), args => value(new QQOfficialGroupOperationEventArgs(args, QQOfficialEventType.GroupMsgReceive)));
+            remove { }
         }
 
-        public static void RegisterGroupMsgRejectHook(this WindyPlugin plugin, Func<QQOfficialGroupOperationEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// 群消息接收权限关闭时触发。
+        /// </summary>
+        public event Func<QQOfficialGroupOperationEventArgs, Task> OnGroupMsgReject
         {
-            plugin.RegisterEventHook(QQOfficialEventType.GroupMsgReject.ToEventName(), args => handler(new QQOfficialGroupOperationEventArgs(args, QQOfficialEventType.GroupMsgReject)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.GroupMsgReject.ToEventName(), args => value(new QQOfficialGroupOperationEventArgs(args, QQOfficialEventType.GroupMsgReject)));
+            remove { }
         }
 
-        public static void RegisterReadyHook(this WindyPlugin plugin, Func<QQOfficialReadyEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// 用户添加机器人为好友时触发。
+        /// </summary>
+        public event Func<QQOfficialUserOperationEventArgs, Task> OnFriendAdd
         {
-            plugin.RegisterEventHook(QQOfficialEventType.Ready.ToEventName(), args => handler(new QQOfficialReadyEventArgs(args)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.FriendAdd.ToEventName(), args => value(new QQOfficialUserOperationEventArgs(args, QQOfficialEventType.FriendAdd)));
+            remove { }
         }
 
-        public static void RegisterResumedHook(this WindyPlugin plugin, Func<QQOfficialSimpleEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// 用户删除机器人好友关系时触发。
+        /// </summary>
+        public event Func<QQOfficialUserOperationEventArgs, Task> OnFriendDel
         {
-            plugin.RegisterEventHook(QQOfficialEventType.Resumed.ToEventName(), args => handler(new QQOfficialSimpleEventArgs(args, QQOfficialEventType.Resumed)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.FriendDel.ToEventName(), args => value(new QQOfficialUserOperationEventArgs(args, QQOfficialEventType.FriendDel)));
+            remove { }
         }
 
-        public static void RegisterFriendAddHook(this WindyPlugin plugin, Func<QQOfficialUserOperationEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// C2C 消息接收权限打开时触发。
+        /// </summary>
+        public event Func<QQOfficialUserOperationEventArgs, Task> OnC2CMsgReceive
         {
-            plugin.RegisterEventHook(QQOfficialEventType.FriendAdd.ToEventName(), args => handler(new QQOfficialUserOperationEventArgs(args, QQOfficialEventType.FriendAdd)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.C2CMsgReceive.ToEventName(), args => value(new QQOfficialUserOperationEventArgs(args, QQOfficialEventType.C2CMsgReceive)));
+            remove { }
         }
 
-        public static void RegisterFriendDelHook(this WindyPlugin plugin, Func<QQOfficialUserOperationEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// C2C 消息接收权限关闭时触发。
+        /// </summary>
+        public event Func<QQOfficialUserOperationEventArgs, Task> OnC2CMsgReject
         {
-            plugin.RegisterEventHook(QQOfficialEventType.FriendDel.ToEventName(), args => handler(new QQOfficialUserOperationEventArgs(args, QQOfficialEventType.FriendDel)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.C2CMsgReject.ToEventName(), args => value(new QQOfficialUserOperationEventArgs(args, QQOfficialEventType.C2CMsgReject)));
+            remove { }
         }
 
-        public static void RegisterC2CMsgReceiveHook(this WindyPlugin plugin, Func<QQOfficialUserOperationEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// 订阅消息状态变化时触发。
+        /// </summary>
+        public event Func<QQOfficialSubscribeMessageStatusEventArgs, Task> OnSubscribeMessageStatus
         {
-            plugin.RegisterEventHook(QQOfficialEventType.C2CMsgReceive.ToEventName(), args => handler(new QQOfficialUserOperationEventArgs(args, QQOfficialEventType.C2CMsgReceive)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.SubscribeMessageStatus.ToEventName(), args => value(new QQOfficialSubscribeMessageStatusEventArgs(args)));
+            remove { }
         }
 
-        public static void RegisterC2CMsgRejectHook(this WindyPlugin plugin, Func<QQOfficialUserOperationEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// 交互事件创建时触发。
+        /// </summary>
+        public event Func<QQOfficialInteractionEventArgs, Task> OnInteractionCreate
         {
-            plugin.RegisterEventHook(QQOfficialEventType.C2CMsgReject.ToEventName(), args => handler(new QQOfficialUserOperationEventArgs(args, QQOfficialEventType.C2CMsgReject)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.InteractionCreate.ToEventName(), args => value(new QQOfficialInteractionEventArgs(args)));
+            remove { }
         }
 
-        public static void RegisterSubscribeMessageStatusHook(this WindyPlugin plugin, Func<QQOfficialSubscribeMessageStatusEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// 消息审核通过时触发。
+        /// </summary>
+        public event Func<QQOfficialMessageAuditEventArgs, Task> OnMessageAuditPass
         {
-            plugin.RegisterEventHook(QQOfficialEventType.SubscribeMessageStatus.ToEventName(), args => handler(new QQOfficialSubscribeMessageStatusEventArgs(args)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.MessageAuditPass.ToEventName(), args => value(new QQOfficialMessageAuditEventArgs(args, QQOfficialEventType.MessageAuditPass)));
+            remove { }
         }
 
-        public static void RegisterInteractionCreateHook(this WindyPlugin plugin, Func<QQOfficialInteractionEventArgs, Task> handler, int priority = 0)
+        /// <summary>
+        /// 消息审核拒绝时触发。
+        /// </summary>
+        public event Func<QQOfficialMessageAuditEventArgs, Task> OnMessageAuditReject
         {
-            plugin.RegisterEventHook(QQOfficialEventType.InteractionCreate.ToEventName(), args => handler(new QQOfficialInteractionEventArgs(args)), priority);
-        }
-
-        public static void RegisterMessageAuditPassHook(this WindyPlugin plugin, Func<QQOfficialMessageAuditEventArgs, Task> handler, int priority = 0)
-        {
-            plugin.RegisterEventHook(QQOfficialEventType.MessageAuditPass.ToEventName(), args => handler(new QQOfficialMessageAuditEventArgs(args, QQOfficialEventType.MessageAuditPass)), priority);
-        }
-
-        public static void RegisterMessageAuditRejectHook(this WindyPlugin plugin, Func<QQOfficialMessageAuditEventArgs, Task> handler, int priority = 0)
-        {
-            plugin.RegisterEventHook(QQOfficialEventType.MessageAuditReject.ToEventName(), args => handler(new QQOfficialMessageAuditEventArgs(args, QQOfficialEventType.MessageAuditReject)), priority);
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.MessageAuditReject.ToEventName(), args => value(new QQOfficialMessageAuditEventArgs(args, QQOfficialEventType.MessageAuditReject)));
+            remove { }
         }
     }
+
 }

@@ -7,7 +7,7 @@ using Windy.SDK.Events;
 
 namespace Windy.SDK.Adaptor.Milky
 {
-    public sealed class MilkyAdaptor : Adaptor
+    public sealed partial class MilkyAdaptor : Adaptor
     {
         private readonly HttpClient httpClient = new();
         private ClientWebSocket? webSocket;
@@ -42,6 +42,9 @@ namespace Windy.SDK.Adaptor.Milky
             AdaptorCapabilities.DirectMessage |
             AdaptorCapabilities.GroupMessage;
 
+        /// <summary>
+        /// 启动 Milky WebSocket 事件连接。
+        /// </summary>
         public override async Task StartAsync(CancellationToken cancellationToken = default)
         {
             cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -63,6 +66,9 @@ namespace Windy.SDK.Adaptor.Milky
             }
         }
 
+        /// <summary>
+        /// 停止 Milky WebSocket 事件连接。
+        /// </summary>
         public override async Task StopAsync(CancellationToken cancellationToken = default)
         {
             cancellationTokenSource?.Cancel();
@@ -76,6 +82,9 @@ namespace Windy.SDK.Adaptor.Milky
             IsActive = false;
         }
 
+        /// <summary>
+        /// 发送 Milky 群消息或私聊消息。
+        /// </summary>
         public override async Task SendMessage(SendTarget target, MessageContent content, SendOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (!EnsureActive("发送 Milky 消息"))
@@ -118,6 +127,9 @@ namespace Windy.SDK.Adaptor.Milky
             await CallApiAsync(action, payload, cancellationToken);
         }
 
+        /// <summary>
+        /// 上传群文件。
+        /// </summary>
         public Task UploadGroupFileAsync(string groupId, string fileUri, string fileName, string parentFolderId = "/", CancellationToken cancellationToken = default)
         {
             if (!EnsureActive("上传 Milky 群文件"))
@@ -134,6 +146,9 @@ namespace Windy.SDK.Adaptor.Milky
             }, cancellationToken);
         }
 
+        /// <summary>
+        /// 上传私聊文件。
+        /// </summary>
         public Task UploadPrivateFileAsync(string userId, string fileUri, string fileName, CancellationToken cancellationToken = default)
         {
             if (!EnsureActive("上传 Milky 私聊文件"))
@@ -147,6 +162,282 @@ namespace Windy.SDK.Adaptor.Milky
                 ["file_uri"] = fileUri,
                 ["file_name"] = fileName,
             }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取当前登录账号信息。
+        /// </summary>
+        public Task<MilkyLoginInfo> GetLoginInfoAsync(CancellationToken cancellationToken = default)
+        {
+            return CallDataApiAsync<MilkyLoginInfo>("get_login_info", new JObject(), cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取 Milky 协议端实现信息。
+        /// </summary>
+        public Task<MilkyImplInfo> GetImplInfoAsync(CancellationToken cancellationToken = default)
+        {
+            return CallDataApiAsync<MilkyImplInfo>("get_impl_info", new JObject(), cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取指定用户个人资料。
+        /// </summary>
+        public Task<MilkyUserProfile> GetUserProfileAsync(string userId, CancellationToken cancellationToken = default)
+        {
+            return CallDataApiAsync<MilkyUserProfile>("get_user_profile", new JObject { ["user_id"] = ParseId(userId, nameof(userId)) }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取好友列表。
+        /// </summary>
+        public Task<IReadOnlyList<MilkyFriendEntity>> GetFriendListAsync(bool noCache = false, CancellationToken cancellationToken = default)
+        {
+            return CallDataListApiAsync<MilkyFriendEntity>("get_friend_list", new JObject { ["no_cache"] = noCache }, "friends", cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取指定好友信息。
+        /// </summary>
+        public Task<MilkyFriendEntity> GetFriendInfoAsync(string userId, bool noCache = false, CancellationToken cancellationToken = default)
+        {
+            return CallDataApiAsync<MilkyFriendEntity>("get_friend_info", new JObject { ["user_id"] = ParseId(userId, nameof(userId)), ["no_cache"] = noCache }, cancellationToken, "friend");
+        }
+
+        /// <summary>
+        /// 获取群列表。
+        /// </summary>
+        public Task<IReadOnlyList<MilkyGroupEntity>> GetGroupListAsync(bool noCache = false, CancellationToken cancellationToken = default)
+        {
+            return CallDataListApiAsync<MilkyGroupEntity>("get_group_list", new JObject { ["no_cache"] = noCache }, "groups", cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取指定群信息。
+        /// </summary>
+        public Task<MilkyGroupEntity> GetGroupInfoAsync(string groupId, bool noCache = false, CancellationToken cancellationToken = default)
+        {
+            return CallDataApiAsync<MilkyGroupEntity>("get_group_info", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["no_cache"] = noCache }, cancellationToken, "group");
+        }
+
+        /// <summary>
+        /// 获取群成员列表。
+        /// </summary>
+        public Task<IReadOnlyList<MilkyGroupMemberEntity>> GetGroupMemberListAsync(string groupId, bool noCache = false, CancellationToken cancellationToken = default)
+        {
+            return CallDataListApiAsync<MilkyGroupMemberEntity>("get_group_member_list", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["no_cache"] = noCache }, "members", cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取指定群成员信息。
+        /// </summary>
+        public Task<MilkyGroupMemberEntity> GetGroupMemberInfoAsync(string groupId, string userId, bool noCache = false, CancellationToken cancellationToken = default)
+        {
+            return CallDataApiAsync<MilkyGroupMemberEntity>("get_group_member_info", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["user_id"] = ParseId(userId, nameof(userId)), ["no_cache"] = noCache }, cancellationToken, "member");
+        }
+
+        /// <summary>
+        /// 获取置顶好友和置顶群列表。
+        /// </summary>
+        public Task<MilkyPeerPins> GetPeerPinsAsync(CancellationToken cancellationToken = default)
+        {
+            return CallDataApiAsync<MilkyPeerPins>("get_peer_pins", new JObject(), cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置好友、群或临时会话置顶状态。
+        /// </summary>
+        public Task SetPeerPinAsync(string messageScene, string peerId, bool isPinned = true, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_peer_pin", new JObject { ["message_scene"] = messageScene, ["peer_id"] = ParseId(peerId, nameof(peerId)), ["is_pinned"] = isPinned }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置当前 QQ 账号头像。
+        /// </summary>
+        public Task SetAvatarAsync(string uri, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_avatar", new JObject { ["uri"] = uri }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置当前 QQ 账号昵称。
+        /// </summary>
+        public Task SetNicknameAsync(string newNickname, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_nickname", new JObject { ["new_nickname"] = newNickname }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置当前 QQ 账号个性签名。
+        /// </summary>
+        public Task SetBioAsync(string newBio, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_bio", new JObject { ["new_bio"] = newBio }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取自定义表情 URL 列表。
+        /// </summary>
+        public Task<IReadOnlyList<string>> GetCustomFaceUrlListAsync(CancellationToken cancellationToken = default)
+        {
+            return CallDataListApiAsync<string>("get_custom_face_url_list", new JObject(), "urls", cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取指定域名的 Cookies 字符串。
+        /// </summary>
+        public Task<string> GetCookiesAsync(string domain, CancellationToken cancellationToken = default)
+        {
+            return CallDataStringApiAsync("get_cookies", new JObject { ["domain"] = domain }, "cookies", cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取 CSRF Token。
+        /// </summary>
+        public Task<string> GetCsrfTokenAsync(CancellationToken cancellationToken = default)
+        {
+            return CallDataStringApiAsync("get_csrf_token", new JObject(), "csrf_token", cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置群名称。
+        /// </summary>
+        public Task SetGroupNameAsync(string groupId, string newGroupName, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_group_name", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["new_group_name"] = newGroupName }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置群头像。
+        /// </summary>
+        public Task SetGroupAvatarAsync(string groupId, string imageUri, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_group_avatar", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["image_uri"] = imageUri }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置群成员名片。
+        /// </summary>
+        public Task SetGroupMemberCardAsync(string groupId, string userId, string card, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_group_member_card", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["user_id"] = ParseId(userId, nameof(userId)), ["card"] = card }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置群成员专属头衔。
+        /// </summary>
+        public Task SetGroupMemberSpecialTitleAsync(string groupId, string userId, string specialTitle, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_group_member_special_title", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["user_id"] = ParseId(userId, nameof(userId)), ["special_title"] = specialTitle }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置或取消群管理员。
+        /// </summary>
+        public Task SetGroupMemberAdminAsync(string groupId, string userId, bool isSet = true, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_group_member_admin", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["user_id"] = ParseId(userId, nameof(userId)), ["is_set"] = isSet }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置或取消群成员禁言。
+        /// </summary>
+        public Task SetGroupMemberMuteAsync(string groupId, string userId, int duration = 0, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_group_member_mute", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["user_id"] = ParseId(userId, nameof(userId)), ["duration"] = duration }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置或取消群全员禁言。
+        /// </summary>
+        public Task SetGroupWholeMuteAsync(string groupId, bool isMute = true, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_group_whole_mute", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["is_mute"] = isMute }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 踢出群成员。
+        /// </summary>
+        public Task KickGroupMemberAsync(string groupId, string userId, bool rejectAddRequest = false, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("kick_group_member", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["user_id"] = ParseId(userId, nameof(userId)), ["reject_add_request"] = rejectAddRequest }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取群公告列表。
+        /// </summary>
+        public Task<IReadOnlyList<MilkyGroupAnnouncementEntity>> GetGroupAnnouncementsAsync(string groupId, CancellationToken cancellationToken = default)
+        {
+            return CallDataListApiAsync<MilkyGroupAnnouncementEntity>("get_group_announcements", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)) }, "announcements", cancellationToken);
+        }
+
+        /// <summary>
+        /// 发送群公告。
+        /// </summary>
+        public Task SendGroupAnnouncementAsync(string groupId, string content, string? imageUri = null, CancellationToken cancellationToken = default)
+        {
+            JObject payload = new() { ["group_id"] = ParseId(groupId, nameof(groupId)), ["content"] = content, ["image_uri"] = imageUri };
+            payload.RemoveNullValues();
+            return CallApiAsync("send_group_announcement", payload, cancellationToken);
+        }
+
+        /// <summary>
+        /// 删除群公告。
+        /// </summary>
+        public Task DeleteGroupAnnouncementAsync(string groupId, string announcementId, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("delete_group_announcement", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["announcement_id"] = announcementId }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取群精华消息列表。
+        /// </summary>
+        public Task<MilkyGroupEssenceMessagesResult> GetGroupEssenceMessagesAsync(string groupId, int pageIndex = 0, int pageSize = 20, CancellationToken cancellationToken = default)
+        {
+            return CallDataApiAsync<MilkyGroupEssenceMessagesResult>("get_group_essence_messages", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["page_index"] = pageIndex, ["page_size"] = pageSize }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 设置或取消群精华消息。
+        /// </summary>
+        public Task SetGroupEssenceMessageAsync(string groupId, string messageSeq, bool isSet = true, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("set_group_essence_message", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["message_seq"] = ParseId(messageSeq, nameof(messageSeq)), ["is_set"] = isSet }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 退出群聊。
+        /// </summary>
+        public Task QuitGroupAsync(string groupId, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("quit_group", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)) }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 发送或取消群消息表情回应。
+        /// </summary>
+        public Task SendGroupMessageReactionAsync(string groupId, string messageSeq, string reaction, string reactionType = "face", bool isAdd = true, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("send_group_message_reaction", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["message_seq"] = ParseId(messageSeq, nameof(messageSeq)), ["reaction"] = reaction, ["reaction_type"] = reactionType, ["is_add"] = isAdd }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 发送群戳一戳。
+        /// </summary>
+        public Task SendGroupNudgeAsync(string groupId, string userId, CancellationToken cancellationToken = default)
+        {
+            return CallApiAsync("send_group_nudge", new JObject { ["group_id"] = ParseId(groupId, nameof(groupId)), ["user_id"] = ParseId(userId, nameof(userId)) }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 获取群通知列表。
+        /// </summary>
+        public Task<MilkyGroupNotificationsResult> GetGroupNotificationsAsync(long? startNotificationSeq = null, bool isFiltered = false, int limit = 20, CancellationToken cancellationToken = default)
+        {
+            JObject payload = new() { ["start_notification_seq"] = startNotificationSeq, ["is_filtered"] = isFiltered, ["limit"] = limit };
+            payload.RemoveNullValues();
+            return CallDataApiAsync<MilkyGroupNotificationsResult>("get_group_notifications", payload, cancellationToken);
         }
 
         private async Task ConnectWebSocketAsync(CancellationToken cancellationToken)
@@ -163,31 +454,49 @@ namespace Windy.SDK.Adaptor.Milky
             receiveTask = ReceiveLoopAsync(webSocket, cancellationToken);
         }
 
+        /// <summary>
+        /// 同意好友请求。
+        /// </summary>
         public Task AcceptFriendRequestAsync(string initiatorUid, bool isFiltered = false, CancellationToken cancellationToken = default)
         {
             return CallApiAsync("accept_friend_request", new JObject { ["initiator_uid"] = initiatorUid, ["is_filtered"] = isFiltered }, cancellationToken);
         }
 
+        /// <summary>
+        /// 拒绝好友请求。
+        /// </summary>
         public Task RejectFriendRequestAsync(string initiatorUid, string reason = "", bool isFiltered = false, CancellationToken cancellationToken = default)
         {
             return CallApiAsync("reject_friend_request", new JObject { ["initiator_uid"] = initiatorUid, ["reason"] = reason, ["is_filtered"] = isFiltered }, cancellationToken);
         }
 
+        /// <summary>
+        /// 同意入群请求或成员邀请他人入群请求。
+        /// </summary>
         public Task AcceptGroupRequestAsync(long groupId, long notificationSeq, string notificationType, bool isFiltered = false, CancellationToken cancellationToken = default)
         {
             return CallApiAsync("accept_group_request", new JObject { ["group_id"] = groupId, ["notification_seq"] = notificationSeq, ["notification_type"] = notificationType, ["is_filtered"] = isFiltered }, cancellationToken);
         }
 
+        /// <summary>
+        /// 拒绝入群请求或成员邀请他人入群请求。
+        /// </summary>
         public Task RejectGroupRequestAsync(long groupId, long notificationSeq, string notificationType, string reason = "", bool isFiltered = false, CancellationToken cancellationToken = default)
         {
             return CallApiAsync("reject_group_request", new JObject { ["group_id"] = groupId, ["notification_seq"] = notificationSeq, ["notification_type"] = notificationType, ["reason"] = reason, ["is_filtered"] = isFiltered }, cancellationToken);
         }
 
+        /// <summary>
+        /// 同意他人邀请自身入群。
+        /// </summary>
         public Task AcceptGroupInvitationAsync(long groupId, long invitationSeq, CancellationToken cancellationToken = default)
         {
             return CallApiAsync("accept_group_invitation", new JObject { ["group_id"] = groupId, ["invitation_seq"] = invitationSeq }, cancellationToken);
         }
 
+        /// <summary>
+        /// 拒绝他人邀请自身入群。
+        /// </summary>
         public Task RejectGroupInvitationAsync(long groupId, long invitationSeq, CancellationToken cancellationToken = default)
         {
             return CallApiAsync("reject_group_invitation", new JObject { ["group_id"] = groupId, ["invitation_seq"] = invitationSeq }, cancellationToken);
@@ -390,6 +699,27 @@ namespace Windy.SDK.Adaptor.Milky
                 Message.Red($"Milky API [{action}] 调用异常: {ex.Message}");
                 return new JObject();
             }
+        }
+
+        private async Task<T> CallDataApiAsync<T>(string action, JObject payload, CancellationToken cancellationToken, string? propertyName = null) where T : new()
+        {
+            JObject result = await CallApiAsync(action, payload, cancellationToken);
+            JToken? data = result["data"];
+            JToken? token = string.IsNullOrWhiteSpace(propertyName) ? data : data?[propertyName];
+            return token == null || token.Type == JTokenType.Null ? new T() : token.ToObject<T>() ?? new T();
+        }
+
+        private async Task<IReadOnlyList<T>> CallDataListApiAsync<T>(string action, JObject payload, string propertyName, CancellationToken cancellationToken)
+        {
+            JObject result = await CallApiAsync(action, payload, cancellationToken);
+            JToken? token = result["data"]?[propertyName];
+            return token == null || token.Type == JTokenType.Null ? [] : token.ToObject<List<T>>() ?? [];
+        }
+
+        private async Task<string> CallDataStringApiAsync(string action, JObject payload, string propertyName, CancellationToken cancellationToken)
+        {
+            JObject result = await CallApiAsync(action, payload, cancellationToken);
+            return result["data"]?.Value<string>(propertyName) ?? "";
         }
 
         private static JObject? ConvertForwardSegment(ForwardSegment forward)

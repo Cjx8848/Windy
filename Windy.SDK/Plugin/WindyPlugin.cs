@@ -29,24 +29,44 @@ namespace Windy.SDK.Plugin
             Hooks = context.Hooks;
         }
 
-        public void RegisterMessageHook(Func<MessageEventArgs, Task> handler, int priority = 0)
+        private void RegisterMessageHook(Func<MessageEventArgs, Task> handler, int priority = 0)
         {
             Hooks.RegisterMessage(this, handler, priority);
         }
 
-        public void RegisterGroupAtNoCommandHook(Func<MessageEventArgs, Task> handler, int priority = 0)
+        private void RegisterGroupAtNoCommandHook(Func<MessageEventArgs, Task> handler, int priority = 0)
         {
             Hooks.RegisterGroupAtNoCommand(this, handler, priority);
         }
 
-        public void RegisterEventHook(string eventType, Func<AdaptorEventArgs, Task> handler, int priority = 0)
+        private void RegisterEventHook(string eventType, Func<AdaptorEventArgs, Task> handler, int priority = 0)
         {
             Hooks.RegisterEvent(this, eventType, handler, priority);
         }
 
-        public void RegisterProHandleHook(Func<CommandArgs, Task> handler, int priority = 0)
+        private void RegisterProHandleHook(Func<CommandArgs, Task> handler, int priority = 0)
         {
             Hooks.RegisterProHandle(this, handler, priority);
+        }
+
+        internal void AddMessageHandler(Func<MessageEventArgs, Task> handler)
+        {
+            RegisterMessageHook(handler);
+        }
+
+        internal void AddGroupAtNoCommandHandler(Func<MessageEventArgs, Task> handler)
+        {
+            RegisterGroupAtNoCommandHook(handler);
+        }
+
+        internal void AddEventHandler(string eventType, Func<AdaptorEventArgs, Task> handler)
+        {
+            RegisterEventHook(eventType, handler);
+        }
+
+        internal void AddProHandleHandler(Func<CommandArgs, Task> handler)
+        {
+            RegisterProHandleHook(handler);
         }
 
         public virtual void Dispose()

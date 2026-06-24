@@ -1,7 +1,13 @@
-﻿namespace Windy.SDK.Adaptor
+﻿using Windy.SDK.Command;
+using Windy.SDK.Events;
+using Windy.SDK.Plugin;
+
+namespace Windy.SDK.Adaptor
 {
     public abstract class Adaptor : IAsyncDisposable
     {
+        private WindyPlugin? plugin;
+
         protected Adaptor(string name, AdaptorType type, AdaptorConfig config)
         {
             Name = name;
@@ -19,11 +25,59 @@
 
         public virtual AdaptorCapabilities Capabilities => AdaptorCapabilities.Text;
 
+        /// <summary>
+        /// 适配器收到标准消息时触发，由运行时内部消费。
+        /// </summary>
         public event EventHandler<Events.MessageEventArgs>? MessageReceived;
 
+        /// <summary>
+        /// 适配器收到非标准消息事件时触发，由运行时内部消费。
+        /// </summary>
         public event EventHandler<Events.AdaptorEventArgs>? EventReceived;
 
+        /// <summary>
+        /// 插件提前处理标准消息的事件。
+        /// </summary>
+        public event Func<MessageEventArgs, Task> OnMessage
+        {
+            add => CurrentPlugin.AddMessageHandler(value);
+            remove { }
+        }
+
+        /// <summary>
+        /// 插件处理群 AT 消息未匹配任何指令时的事件。
+        /// </summary>
+        public event Func<MessageEventArgs, Task> OnGroupAtNoCommand
+        {
+            add => CurrentPlugin.AddGroupAtNoCommandHandler(value);
+            remove { }
+        }
+
+        /// <summary>
+        /// 插件在指令方法执行前处理命令的事件。
+        /// </summary>
+        public event Func<CommandArgs, Task> OnProCommand
+        {
+            add => CurrentPlugin.AddProHandleHandler(value);
+            remove { }
+        }
+
+        protected WindyPlugin CurrentPlugin => plugin ?? throw new InvalidOperationException("只能在插件 Initialize 中订阅适配器事件.");
+
         public abstract Task StartAsync(CancellationToken cancellationToken = default);
+
+        internal void BindPlugin(WindyPlugin plugin)
+        {
+            this.plugin = plugin;
+        }
+
+        internal void UnbindPlugin(WindyPlugin plugin)
+        {
+            if (ReferenceEquals(this.plugin, plugin))
+            {
+                this.plugin = null;
+            }
+        }
 
         public abstract Task StopAsync(CancellationToken cancellationToken = default);
 

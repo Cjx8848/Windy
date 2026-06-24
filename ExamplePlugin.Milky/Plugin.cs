@@ -24,13 +24,28 @@ namespace ExamplePlugin.Milky
         public override void Initialize()
         {
             JsonTool.Create<Config>(Path.Combine(AppContext.BaseDirectory, "Config", "ExampleMilky.json")).Read();
-            RegisterMessageHook(OnMilkyMessageAsync, priority: 0);
-            RegisterProHandleHook(OnMilkyProHandleAsync, priority: 100);
-            this.RegisterFriendRequestHook(OnFriendRequestAsync, priority: 100);
-            this.RegisterGroupJoinRequestHook(OnGroupJoinRequestAsync, priority: 100);
-            this.RegisterGroupInvitationHook(OnGroupInvitationAsync, priority: 100);
-            this.RegisterGroupMemberIncreaseHook(OnGroupMemberIncreaseAsync, priority: 100);
-            this.RegisterGroupMemberDecreaseHook(OnGroupMemberDecreaseAsync, priority: 100);
+            Adaptor.OnMessage += OnMilkyMessageAsync;
+            Adaptor.OnProCommand += OnMilkyProHandleAsync;
+
+            MilkyAdaptor milky = (MilkyAdaptor)Adaptor;
+            milky.OnBotOffline += OnBotOfflineAsync;
+            milky.OnMessageRecall += OnMessageRecallAsync;
+            milky.OnFriendRequest += OnFriendRequestAsync;
+            milky.OnGroupJoinRequest += OnGroupJoinRequestAsync;
+            milky.OnGroupInvitedJoinRequest += OnGroupInvitedJoinRequestAsync;
+            milky.OnGroupInvitation += OnGroupInvitationAsync;
+            milky.OnFriendNudge += OnFriendNudgeAsync;
+            milky.OnFriendFileUpload += OnFileUploadAsync;
+            milky.OnGroupAdminChange += OnGroupAdminChangeAsync;
+            milky.OnGroupEssenceMessageChange += OnGroupEssenceMessageChangeAsync;
+            milky.OnGroupMemberIncrease += OnGroupMemberIncreaseAsync;
+            milky.OnGroupMemberDecrease += OnGroupMemberDecreaseAsync;
+            milky.OnGroupNameChange += OnGroupNameChangeAsync;
+            milky.OnGroupMessageReaction += OnGroupMessageReactionAsync;
+            milky.OnGroupMute += OnGroupMuteAsync;
+            milky.OnGroupWholeMute += OnGroupWholeMuteAsync;
+            milky.OnGroupNudge += OnGroupNudgeAsync;
+            milky.OnGroupFileUpload += OnFileUploadAsync;
         }
 
         //提前处理消息
@@ -57,6 +72,19 @@ namespace ExamplePlugin.Milky
             args.Handled = true;
             return args.Adaptor.SendMessage("Milky ProHandle 已拦截，命令方法不会执行.");
         }
+
+        private static Task OnBotOfflineAsync(MilkyBotOfflineEventArgs args)
+        {
+            Message.Red($"[ExamplePlugin.Milky][{args.Type}] reason={args.Reason}");
+            return Task.CompletedTask;
+        }
+
+        private static Task OnMessageRecallAsync(MilkyMessageRecallEventArgs args)
+        {
+            Message.Yellow($"[ExamplePlugin.Milky][{args.Type}] scene={args.MessageScene}, peer={args.PeerId}, seq={args.MessageSeq}, sender={args.SenderId}, operator={args.OperatorId}");
+            return Task.CompletedTask;
+        }
+
         //好友申请
         private static Task OnFriendRequestAsync(MilkyFriendRequestEventArgs args)
         {
@@ -91,11 +119,43 @@ namespace ExamplePlugin.Milky
             args.Ignore();
             return Task.CompletedTask;
         }
+
+        private static Task OnGroupInvitedJoinRequestAsync(MilkyGroupInvitedJoinRequestEventArgs args)
+        {
+            Message.Yellow($"[ExamplePlugin.Milky][{args.Type}] group={args.GroupId}, initiator={args.InitiatorId}, target={args.TargetUserId}, seq={args.NotificationSeq}");
+            args.Ignore();
+            return Task.CompletedTask;
+        }
+
         //大概是邀请入群,但是我还没测试成功过
         private static Task OnGroupInvitationAsync(MilkyGroupInvitationEventArgs args)
         {
             Message.Yellow($"[ExamplePlugin.Milky][{args.Type}] group={args.GroupId}, source={args.SourceGroupId}, initiator={args.InitiatorId}, seq={args.InvitationSeq}");
             args.Ignore();
+            return Task.CompletedTask;
+        }
+
+        private static Task OnFriendNudgeAsync(MilkyFriendNudgeEventArgs args)
+        {
+            Message.Green($"[ExamplePlugin.Milky][{args.Type}] user={args.UserId}, action={args.DisplayAction}, suffix={args.DisplaySuffix}");
+            return Task.CompletedTask;
+        }
+
+        private static Task OnFileUploadAsync(MilkyFileUploadEventArgs args)
+        {
+            Message.Green($"[ExamplePlugin.Milky][{args.Type}] group={args.GroupId}, user={args.UserId}, file={args.FileName}, size={args.FileSize}");
+            return Task.CompletedTask;
+        }
+
+        private static Task OnGroupAdminChangeAsync(MilkyGroupAdminChangeEventArgs args)
+        {
+            Message.Yellow($"[ExamplePlugin.Milky][{args.Type}] group={args.GroupId}, user={args.UserId}, operator={args.OperatorId}, set={args.IsSet}");
+            return Task.CompletedTask;
+        }
+
+        private static Task OnGroupEssenceMessageChangeAsync(MilkyGroupEssenceMessageChangeEventArgs args)
+        {
+            Message.Yellow($"[ExamplePlugin.Milky][{args.Type}] group={args.GroupId}, seq={args.MessageSeq}, operator={args.OperatorId}, set={args.IsSet}");
             return Task.CompletedTask;
         }
 
@@ -109,6 +169,36 @@ namespace ExamplePlugin.Milky
         private static Task OnGroupMemberDecreaseAsync(MilkyGroupMemberChangeEventArgs args)
         {
             Message.Yellow($"[ExamplePlugin.Milky][{args.Type}] group={args.GroupId}, user={args.UserId}, operator={args.OperatorId}");
+            return Task.CompletedTask;
+        }
+
+        private static Task OnGroupNameChangeAsync(MilkyGroupNameChangeEventArgs args)
+        {
+            Message.Yellow($"[ExamplePlugin.Milky][{args.Type}] group={args.GroupId}, name={args.NewGroupName}, operator={args.OperatorId}");
+            return Task.CompletedTask;
+        }
+
+        private static Task OnGroupMessageReactionAsync(MilkyGroupMessageReactionEventArgs args)
+        {
+            Message.Green($"[ExamplePlugin.Milky][{args.Type}] group={args.GroupId}, user={args.UserId}, seq={args.MessageSeq}, face={args.FaceId}, add={args.IsAdd}");
+            return Task.CompletedTask;
+        }
+
+        private static Task OnGroupMuteAsync(MilkyGroupMuteEventArgs args)
+        {
+            Message.Yellow($"[ExamplePlugin.Milky][{args.Type}] group={args.GroupId}, user={args.UserId}, operator={args.OperatorId}, duration={args.Duration}");
+            return Task.CompletedTask;
+        }
+
+        private static Task OnGroupWholeMuteAsync(MilkyGroupWholeMuteEventArgs args)
+        {
+            Message.Yellow($"[ExamplePlugin.Milky][{args.Type}] group={args.GroupId}, operator={args.OperatorId}, mute={args.IsMute}");
+            return Task.CompletedTask;
+        }
+
+        private static Task OnGroupNudgeAsync(MilkyGroupNudgeEventArgs args)
+        {
+            Message.Green($"[ExamplePlugin.Milky][{args.Type}] group={args.GroupId}, sender={args.SenderId}, receiver={args.ReceiverId}, action={args.DisplayAction}");
             return Task.CompletedTask;
         }
 
@@ -169,6 +259,36 @@ namespace ExamplePlugin.Milky
         public void ActiveGroupMessageAsync(CommandArgs args)
         {
             Adaptor.SendMessage(args.Message.GroupId!, "这是一条 Milky 主动群消息测试.");
+        }
+
+        [Command("milky群公告", "获取 Milky 群公告列表", MessageScene.Group)]
+        public async Task GroupAnnouncementsAsync(CommandArgs args)
+        {
+            IReadOnlyList<MilkyGroupAnnouncementEntity> announcements = await ((MilkyAdaptor)Adaptor).GetGroupAnnouncementsAsync(args.Message.GroupId!);
+            string text = announcements.Count == 0
+                ? "当前群没有公告."
+                : string.Join("\n", announcements.Select(item => $"{item.AnnouncementId}: {item.Content}"));
+            await args.Adaptor.SendMessage(text);
+        }
+
+        [Command("milky群精华", "获取 Milky 群精华消息列表", MessageScene.Group)]
+        public async Task GroupEssenceMessagesAsync(CommandArgs args)
+        {
+            MilkyGroupEssenceMessagesResult result = await ((MilkyAdaptor)Adaptor).GetGroupEssenceMessagesAsync(args.Message.GroupId!);
+            string text = result.Messages.Count == 0
+                ? "当前群没有精华消息."
+                : string.Join("\n", result.Messages.Select(item => $"{item.MessageSeq}: {item.SenderName} ({item.Segments.Count} 段)"));
+            await args.Adaptor.SendMessage(text);
+        }
+
+        [Command("milky群通知", "获取 Milky 群通知列表", MessageScene.Group)]
+        public async Task GroupNotificationsAsync(CommandArgs args)
+        {
+            MilkyGroupNotificationsResult result = await ((MilkyAdaptor)Adaptor).GetGroupNotificationsAsync();
+            string text = result.Notifications.Count == 0
+                ? "当前没有群通知."
+                : string.Join("\n", result.Notifications.Select(item => $"{item.NotificationSeq}: {item.Type} state={item.State}"));
+            await args.Adaptor.SendMessage(text);
         }
 
         [Command("milkypro拦截", "演示 Milky ProHandle 拦截", MessageScene.Group)]

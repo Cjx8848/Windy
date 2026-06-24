@@ -143,7 +143,15 @@ namespace Windy.SDK.Plugin
                 }
 
                 plugin.ProInitialize(new PluginContext(adaptor, commands, hooks));
-                plugin.Initialize();
+                adaptor.BindPlugin(plugin);
+                try
+                {
+                    plugin.Initialize();
+                }
+                finally
+                {
+                    adaptor.UnbindPlugin(plugin);
+                }
                 commands.RegisterFromPlugin(plugin);
                 plugins.Add(plugin);
                 Message.Yellow($"[{plugin.Name}] Version:{plugin.Version}(by {plugin.Author}) 成功加载.");

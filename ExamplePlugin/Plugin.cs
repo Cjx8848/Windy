@@ -23,16 +23,18 @@ namespace ExamplePlugin
         public override void Initialize()
         {
             JsonTool.Create<Config>(Path.Combine(AppContext.BaseDirectory, "Config", "Example.json")).Read();
-            RegisterMessageHook(OnMessageAsync, priority: 100);
-            RegisterProHandleHook(OnProHandleAsync, priority: 100);
-            this.RegisterQQOfficialGroupAtNoCommandHook(OnGroupAtNoCommandAsync, priority: 100);
-            this.RegisterReadyHook(OnReadyAsync, priority: 100);
-            this.RegisterResumedHook(OnResumedAsync, priority: 100);
-            this.RegisterFriendAddHook(OnFriendAddAsync, priority: 100);
-            this.RegisterGroupAddRobotHook(OnGroupAddRobotAsync, priority: 100);
-            this.RegisterGroupDelRobotHook(OnGroupDelRobotAsync, priority: 100);
-            this.RegisterGroupMemberAddHook(OnGroupMemberAddAsync, priority: 100);
-            this.RegisterGroupMemberRemoveHook(OnGroupMemberRemoveAsync, priority: 100);
+            Adaptor.OnMessage += OnMessageAsync;
+            Adaptor.OnProCommand += OnProHandleAsync;
+            Adaptor.OnGroupAtNoCommand += OnGroupAtNoCommandAsync;
+
+            QQOfficialAdaptor qq = (QQOfficialAdaptor)Adaptor;
+            qq.OnReady += OnReadyAsync;
+            qq.OnResumed += OnResumedAsync;
+            qq.OnFriendAdd += OnFriendAddAsync;
+            qq.OnGroupAddRobot += OnGroupAddRobotAsync;
+            qq.OnGroupDelRobot += OnGroupDelRobotAsync;
+            qq.OnGroupMemberAdd += OnGroupMemberAddAsync;
+            qq.OnGroupMemberRemove += OnGroupMemberRemoveAsync;
         }
 
         //提前处理消息
