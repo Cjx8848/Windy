@@ -58,7 +58,7 @@ namespace Windy.SDK.Command
 
             try
             {
-                CommandArgs commandArgs = new(command.Name, args[1..], message);
+                CommandArgs commandArgs = new(commandName, args[1..], message);
                 if (hooks != null)
                 {
                     await hooks.ExecuteProHandleAsync(commandArgs, cancellationToken);

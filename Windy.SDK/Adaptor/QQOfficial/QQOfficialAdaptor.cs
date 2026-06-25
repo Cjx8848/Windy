@@ -4,6 +4,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Windy.SDK.Events;
+using Windy.SDK.Services;
 
 namespace Windy.SDK.Adaptor.QQOfficial
 {
@@ -48,6 +49,8 @@ namespace Windy.SDK.Adaptor.QQOfficial
 
         public override async Task StartAsync(CancellationToken cancellationToken = default)
         {
+            FileServer.Start(Config);
+
             if (string.IsNullOrWhiteSpace(AppId) || string.IsNullOrWhiteSpace(ClientSecret))
             {
                 Message.Yellow("QQ官方适配器缺少 AppId 或 ClientSecret，已跳过连接.");
@@ -77,6 +80,7 @@ namespace Windy.SDK.Adaptor.QQOfficial
 
         public override async Task StopAsync(CancellationToken cancellationToken = default)
         {
+            FileServer.Stop();
             cancellationTokenSource?.Cancel();
             if (webSocket?.State == WebSocketState.Open)
             {

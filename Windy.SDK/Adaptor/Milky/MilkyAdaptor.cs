@@ -645,7 +645,7 @@ namespace Windy.SDK.Adaptor.Milky
             return Task.FromResult(segment switch
             {
                 TextSegment text => Segment("text", new JObject { ["text"] = text.Text }),
-                MentionSegment mention => Segment("mention", new JObject { ["user_id"] = ParseId(mention.UserId, nameof(mention.UserId)) }),
+                MentionSegment mention => ConvertMentionSegment(mention),
                 MentionAllSegment => Segment("mention_all", new JObject()),
                 ImageUrlSegment image => Segment("image", new JObject { ["uri"] = image.Url }),
                 ImageSegment image => Segment("image", new JObject { ["uri"] = ToBase64Uri(image.Data) }),
@@ -772,7 +772,7 @@ namespace Windy.SDK.Adaptor.Milky
             return segment switch
             {
                 TextSegment text => Segment("text", new JObject { ["text"] = text.Text }),
-                MentionSegment mention => Segment("mention", new JObject { ["user_id"] = ParseId(mention.UserId, nameof(mention.UserId)) }),
+                MentionSegment mention => ConvertMentionSegment(mention),
                 MentionAllSegment => Segment("mention_all", new JObject()),
                 ImageUrlSegment image => Segment("image", new JObject { ["uri"] = image.Url }),
                 ImageSegment image => Segment("image", new JObject { ["uri"] = ToBase64Uri(image.Data) }),
@@ -785,6 +785,14 @@ namespace Windy.SDK.Adaptor.Milky
         {
             data.RemoveNullValues();
             return new JObject { ["type"] = type, ["data"] = data };
+        }
+
+        private static JObject? ConvertMentionSegment(MentionSegment mention)
+        {
+            if (long.TryParse(mention.UserId, out long qq))
+                return Segment("mention", new JObject { ["user_id"] = qq });
+
+            return Segment("text", new JObject { ["text"] = $"<@{mention.UserId}>" });
         }
 
         private static JObject? SkipUnsupported(string message)
