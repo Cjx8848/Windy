@@ -553,7 +553,7 @@ namespace Windy.SDK.Adaptor.Milky
             {
                 try
                 {
-                    Message.Yellow($"Milky 将在 {ReconnectInterval}ms 后重连.");
+                    //Message.Yellow($"Milky 将在 {ReconnectInterval}ms 后重连.");
                     await Task.Delay(ReconnectInterval, cancellationToken);
                     await ConnectWebSocketAsync(cancellationToken);
                     Message.Green("Milky WebSocket 重连成功.");
@@ -565,7 +565,7 @@ namespace Windy.SDK.Adaptor.Milky
                 }
                 catch (Exception ex)
                 {
-                    Message.Red($"Milky WebSocket 重连失败: {ex.Message}");
+                    //Message.Red($"Milky WebSocket 重连失败: {ex.Message}");
                 }
             }
         }
