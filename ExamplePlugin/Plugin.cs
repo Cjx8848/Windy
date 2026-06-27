@@ -83,14 +83,13 @@ namespace ExamplePlugin
         private static Task OnGroupAddRobotAsync(QQOfficialGroupOperationEventArgs args)
         {
             Message.Yellow($"[Example][{args.Type}] group={args.GroupOpenId}, operator={args.OperatorMemberOpenId}, timestamp={args.Timestamp}");
-            args.Handled = true;
-            return Task.CompletedTask;
+            return args.SendToGroup(new MessageContent().AddMarkdown("感谢邀请，我已加入群聊!"));
         }
 
         private static Task OnFriendAddAsync(QQOfficialUserOperationEventArgs args)
         {
             Message.Green($"[Example][{args.Type}] user={args.OpenId}, timestamp={args.Timestamp}");
-            return Task.CompletedTask;
+            return args.SendToUser(new MessageContent().AddText("你好，感谢添加好友!"));
         }
 
         private static Task OnGroupDelRobotAsync(QQOfficialGroupOperationEventArgs args)
@@ -102,7 +101,7 @@ namespace ExamplePlugin
         private static Task OnGroupMemberAddAsync(QQOfficialGroupMemberEventArgs args)
         {
             Message.Green($"[Example][{args.Type}] group={args.GroupOpenId}, member={args.MemberOpenId}, operator={args.OperatorMemberOpenId}, timestamp={args.Timestamp}");
-            return Task.CompletedTask;
+            return args.SendToGroup(new MessageContent().AddText("欢迎新成员入群!"));
         }
 
         private static Task OnGroupMemberRemoveAsync(QQOfficialGroupMemberEventArgs args)

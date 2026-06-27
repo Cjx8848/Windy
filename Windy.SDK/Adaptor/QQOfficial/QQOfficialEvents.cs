@@ -1,4 +1,5 @@
 using Newtonsoft.Json.Linq;
+using Windy.SDK.Adaptor;
 using Windy.SDK.Events;
 
 namespace Windy.SDK.Adaptor.QQOfficial
@@ -118,6 +119,16 @@ namespace Windy.SDK.Adaptor.QQOfficial
             get => Source.Handled;
             set => Source.Handled = value;
         }
+
+        public Task SendMessage(SendTarget target, MessageContent content, CancellationToken cancellationToken = default)
+        {
+            SendOptions options = new()
+            {
+                EventId = EventId,
+                Passive = true,
+            };
+            return Adaptor.SendMessage(target, content, options, cancellationToken);
+        }
     }
 
     public sealed class QQOfficialReadyEventArgs : QQOfficialEventArgs
@@ -147,6 +158,11 @@ namespace Windy.SDK.Adaptor.QQOfficial
         public string OperatorMemberOpenId => Data.Value<string>("op_member_openid") ?? Data.Value<string>("operator_openid") ?? "";
 
         public long Timestamp => Data.Value<long?>("timestamp") ?? 0;
+
+        public Task SendToGroup(MessageContent content, CancellationToken cancellationToken = default)
+        {
+            return SendMessage(SendTarget.Group(GroupOpenId), content, cancellationToken);
+        }
     }
 
     public sealed class QQOfficialGroupMemberEventArgs : QQOfficialEventArgs
@@ -162,6 +178,11 @@ namespace Windy.SDK.Adaptor.QQOfficial
         public string MemberOpenId => Data.Value<string>("member_openid") ?? Data.Value<string>("user_openid") ?? "";
 
         public long Timestamp => Data.Value<long?>("timestamp") ?? 0;
+
+        public Task SendToGroup(MessageContent content, CancellationToken cancellationToken = default)
+        {
+            return SendMessage(SendTarget.Group(GroupOpenId), content, cancellationToken);
+        }
     }
 
     public sealed class QQOfficialUserOperationEventArgs : QQOfficialEventArgs
@@ -173,6 +194,11 @@ namespace Windy.SDK.Adaptor.QQOfficial
         public string OpenId => Data.Value<string>("openid") ?? Data.Value<string>("user_openid") ?? "";
 
         public long Timestamp => Data.Value<long?>("timestamp") ?? 0;
+
+        public Task SendToUser(MessageContent content, CancellationToken cancellationToken = default)
+        {
+            return SendMessage(SendTarget.User(OpenId), content, cancellationToken);
+        }
     }
 
     public sealed class QQOfficialSubscribeMessageStatusEventArgs : QQOfficialEventArgs
@@ -186,6 +212,11 @@ namespace Windy.SDK.Adaptor.QQOfficial
         public string Status => Data.Value<string>("status") ?? "";
 
         public long Timestamp => Data.Value<long?>("timestamp") ?? 0;
+
+        public Task SendToUser(MessageContent content, CancellationToken cancellationToken = default)
+        {
+            return SendMessage(SendTarget.User(OpenId), content, cancellationToken);
+        }
     }
 
     public sealed class QQOfficialInteractionEventArgs : QQOfficialEventArgs
