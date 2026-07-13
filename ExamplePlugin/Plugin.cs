@@ -35,6 +35,7 @@ namespace ExamplePlugin
             qq.OnGroupDelRobot += OnGroupDelRobotAsync;
             qq.OnGroupMemberAdd += OnGroupMemberAddAsync;
             qq.OnGroupMemberRemove += OnGroupMemberRemoveAsync;
+            qq.OnC2CMessage += OnC2CMessageAsync;
         }
 
         //提前处理消息
@@ -108,6 +109,12 @@ namespace ExamplePlugin
         {
             Message.Yellow($"[Example][{args.Type}] group={args.GroupOpenId}, member={args.MemberOpenId}, operator={args.OperatorMemberOpenId}, timestamp={args.Timestamp}");
             return Task.CompletedTask;
+        }
+
+        private static Task OnC2CMessageAsync(QQOfficialC2CMessageEventArgs args)
+        {
+            Message.Blue($"[Example][{args.Type}] author={args.AuthorId}, name={args.AuthorName}, content={args.Content}, msgId={args.MessageId}");
+            return args.SendMessage($"收到你的消息: {args.Content}");
         }
 
         [Command("测试", "测试 Markdown 与按钮组合消息", MessageScene.Group)]

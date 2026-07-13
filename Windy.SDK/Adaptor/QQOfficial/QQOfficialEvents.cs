@@ -228,6 +228,44 @@ namespace Windy.SDK.Adaptor.QQOfficial
         public string Id => Data.Value<string>("id") ?? "";
     }
 
+    public sealed class QQOfficialC2CMessageEventArgs : QQOfficialEventArgs
+    {
+        public QQOfficialC2CMessageEventArgs(AdaptorEventArgs source) : base(source, QQOfficialEventType.C2CMessageCreate)
+        {
+        }
+
+        public string AuthorId => (Data["author"] as JObject)?.Value<string>("user_openid")
+            ?? Data.Value<string>("openid") ?? "";
+
+        public string AuthorName => (Data["author"] as JObject)?.Value<string>("username") ?? "";
+
+        public string Content => Data.Value<string>("content") ?? "";
+
+        public string MessageId => Data.Value<string>("id") ?? "";
+
+        public long Timestamp => Data.Value<long?>("timestamp") ?? 0;
+
+        public Task SendToUser(MessageContent content, CancellationToken cancellationToken = default)
+        {
+            return SendMessage(SendTarget.User(AuthorId), content, cancellationToken);
+        }
+
+        public Task SendMessage(MessageContent content, CancellationToken cancellationToken = default)
+        {
+            SendOptions options = new()
+            {
+                MessageId = MessageId,
+                Passive = true,
+            };
+            return Adaptor.SendMessage(SendTarget.User(AuthorId), content, options, cancellationToken);
+        }
+
+        public Task SendMessage(string text, CancellationToken cancellationToken = default)
+        {
+            return SendMessage(new MessageContent().AddText(text), cancellationToken);
+        }
+    }
+
     public sealed class QQOfficialMessageAuditEventArgs : QQOfficialEventArgs
     {
         public QQOfficialMessageAuditEventArgs(AdaptorEventArgs source, QQOfficialEventType type) : base(source, type)
@@ -382,6 +420,15 @@ namespace Windy.SDK.Adaptor.QQOfficial
         public event Func<QQOfficialMessageAuditEventArgs, Task> OnMessageAuditReject
         {
             add => CurrentPlugin.AddEventHandler(QQOfficialEventType.MessageAuditReject.ToEventName(), args => value(new QQOfficialMessageAuditEventArgs(args, QQOfficialEventType.MessageAuditReject)));
+            remove { }
+        }
+
+        /// <summary>
+        /// 收到 C2C 私聊消息时触发。
+        /// </summary>
+        public event Func<QQOfficialC2CMessageEventArgs, Task> OnC2CMessage
+        {
+            add => CurrentPlugin.AddEventHandler(QQOfficialEventType.C2CMessageCreate.ToEventName(), args => value(new QQOfficialC2CMessageEventArgs(args)));
             remove { }
         }
     }

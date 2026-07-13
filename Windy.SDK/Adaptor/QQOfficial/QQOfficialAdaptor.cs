@@ -437,6 +437,7 @@ namespace Windy.SDK.Adaptor.QQOfficial
                     break;
                 case "C2C_MESSAGE_CREATE":
                     PublishMessage(CreatePrivateMessage(data, envelope));
+                    PublishEvent(new Events.AdaptorEventArgs(this, eventType, envelope));
                     break;
                 case "GROUP_ADD_ROBOT":
                 case "GROUP_DEL_ROBOT":
